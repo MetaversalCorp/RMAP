@@ -19,17 +19,28 @@ Modules:
 
 ```
 RMAP/
-  CMakeLists.txt           Single source of truth for the build (all platforms)
+  CMakeLists.txt           Top-level: options, assembles the single RMAP.lib, install/export
   CMakePresets.json        Ready-made configure/build presets
   cmake/                   Package-config template for find_package(RMAP)
-  RMAP/                    Core module
+  RMAP/                    Core module -> the RMAP.lib target
+    CMakeLists.txt         Core project (STATIC library)
     include/RMAP/          Public headers (installed)
     src/                   Implementation + private headers (+ pch.h)
     third_party/json/      nlohmann_json, fetched from git at build time (not committed)
-  RMAP_Svc_SB/             SB service module (include/ + src/)
-  RMAP_Svc_Rest/           REST service module (include/ + src/)
-  RMAP_Svc_SocketIO/       SocketIO service module (include/ + src/)
+  RMAP_Svc_SB/             SB service module
+    CMakeLists.txt         Service project (OBJECT library folded into RMAP.lib)
+    include/ + src/
+  RMAP_Svc_Rest/           REST service module (same structure)
+  RMAP_Svc_SocketIO/       SocketIO service module (same structure)
 ```
+
+Each module has its own `CMakeLists.txt`, so the generated Visual Studio solution
+contains one project per module — `RMAP` (the core STATIC library, which *is*
+`RMAP.lib`) plus one `OBJECT`-library project per enabled service. Every service's
+compiled objects are folded into `RMAP.lib`, so the deliverable stays a single
+archive. Each project's source is organized into Solution Explorer filters that
+mirror its on-disk folder layout (`src\base`, `src\core`, `src\mem`, `src\model`,
+`include\RMAP`).
 
 ## Building
 

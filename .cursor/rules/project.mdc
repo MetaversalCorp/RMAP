@@ -1,8 +1,3 @@
----
-description: RMAP project resume point - overview, architecture, decisions, conventions, work history, and open questions. Read first at session start.
-alwaysApply: true
----
-
 # RMAP - Project Resume Point
 
 This file is the AI agent's memory for the RMAP project. It is read first at session
@@ -12,150 +7,201 @@ deferred and why, and what the agent got wrong - not just conclusions.
 
 ## Project Overview
 
-RMAP is a C++ project whose deliverable is a **single static library, `RMAP.lib`**
+RMAP is a C++17 project whose deliverable is a **single static library, `RMAP.lib`**
 (`libRMAP.a` on GCC/Clang), composed of four logical "modules". The four modules are
 **not** shipped as separate libraries - they are compiled independently but merged into
 one archive. Any of the three service modules can be excluded from the build via a CMake
-option; the RMAP core is always present.
+option; the RMAP core is always present. The build is cross-platform and CMake is the
+single source of truth (no committed IDE project files - they are generated).
 
 Repository: `https://github.com/MetaversalCorp/RMAP.git` (cloned to `C:\Dev\OMB\RMAP`).
 
 ### The four modules
 
-| Module | Folder | Role | Toggle | Object target |
-|--------|--------|------|--------|---------------|
-| RMAP (core) | `RMAP/` | Core foundation; every service depends on it | Always built | `RMAP_Objects` |
-| RMAP_Svc_SB | `RMAP_Svc_SB/` | SB service layer | `RMAP_BUILD_SVC_SB` (ON) | `RMAP_Svc_SB_Objects` |
-| RMAP_Svc_Rest | `RMAP_Svc_Rest/` | REST service layer | `RMAP_BUILD_SVC_REST` (ON) | `RMAP_Svc_Rest_Objects` |
-| RMAP_Svc_SocketIO | `RMAP_Svc_SocketIO/` | SocketIO service layer | `RMAP_BUILD_SVC_SOCKETIO` (ON) | `RMAP_Svc_SocketIO_Objects` |
+| Module | Folder | Role | Toggle | CMake target |
+|-----|-----|---|-----|---|
+| RMAP (core) | `RMAP/` | Core foundation; every service depends on it | Always built | `RMAP` (STATIC) |
+| RMAP_Svc_SB | `RMAP_Svc_SB/` | SB service layer | `RMAP_BUILD_SVC_SB` (ON) | `RMAP_Svc_SB` (OBJECT) |
+| RMAP_Svc_Rest | `RMAP_Svc_Rest/` | REST service layer | `RMAP_BUILD_SVC_REST` (ON) | `RMAP_Svc_Rest` (OBJECT) |
+| RMAP_Svc_SocketIO | `RMAP_Svc_SocketIO/` | SocketIO service layer | `RMAP_BUILD_SVC_SOCKETIO` (ON) | `RMAP_Svc_SocketIO` (OBJECT) |
 
 Module relationship (confirmed by DavidSr): RMAP is the core foundation; the three
 `RMAP_Svc_*` modules are independent service layers that all depend on RMAP core, but do
-NOT depend on each other. The exact responsibilities of SB / Rest / SocketIO have not yet
-been defined in detail - SB appears to be a byte-stream/socket protocol backend (the old,
-now-absent `RMAP_SB` tree contained `ByteStream.cpp`, `Net.cpp`, `Subscription.cpp`,
-etc.), Rest a REST backend, SocketIO a Socket.IO backend. Treat these as open until the
-real source arrives.
+NOT depend on each other. SB appears to be a byte-stream/socket protocol backend, Rest a
+REST backend, SocketIO a Socket.IO backend. The **core now contains real implementation
+source** (see inventory); the three service modules are still one-line placeholders
+(a `Svc_*_GetName()` accessor each) awaiting real code.
 
-## Current State (as of 2026-07-23)
+## Current State (as of 2026-07-24)
 
-Green-field scaffold is complete and verified building on MSVC. Only placeholder source
-exists so far; real implementation source is to be added later.
+Real core source is committed and the build is CMake-driven, generating a **multi-project
+Visual Studio solution** (one project per module) that produces a single `RMAP.lib`.
+Verified building on MSVC. The three service modules are still placeholders.
+
+Everything on disk is committed (working tree was clean before this session's CMake
+restructure). Git history is two commits, both literally titled "Initial commit" /
+"Initial Commit" - `9434f77` (LICENSE + README only) then `854dd3f` (the whole current
+tree: real core source, single-target `CMakeLists.txt`, `CMakePresets.json`, headers,
+`.gitignore`, `cmake/RMAPConfig.cmake.in`). The per-module `CMakeLists.txt` files added
+this session are new/untracked (not yet committed at time of writing).
 
 ### File inventory
 
 ```
 C:\Dev\OMB\RMAP\
-  CMakeLists.txt                 # top-level: project(), options, assembles single RMAP.lib, install/export
-  cmake\RMAPConfig.cmake.in      # find_package(RMAP) package config template
-  .gitignore                     # ignores build output + CMake artifacts
-  LICENSE                        # from initial commit
-  README.md                      # from initial commit (single line "# RMAP")
-  RMAP\                          # core module (always built)
-    CMakeLists.txt
-    include\RMAP\RMAP.h          # declares RMAP::GetName(), RMAP::GetVersion()
-    src\RMAP.cpp
-  RMAP_Svc_SB\                   # optional service
-    CMakeLists.txt
-    include\RMAP_Svc_SB\RMAP_Svc_SB.h        # declares RMAP::Svc_SB_GetName()
+  CMakeLists.txt                 top-level: project(), options, add_subdirectory each module,
+                                 folds service objects into RMAP, nlohmann_json, install/export
+  CMakePresets.json              "vs2022" configure preset + vs2022-debug/-release build presets
+  cmake\RMAPConfig.cmake.in      find_package(RMAP) package config template
+  .gitignore                     ignores build output + CMake artifacts + third_party/json
+  LICENSE, README.md
+  RMAP\                          core module (always built) -> the RMAP.lib STATIC target
+    CMakeLists.txt               core project: RMAP_FILES list, STATIC lib, PCH, source_group
+    include\RMAP\                public headers (installed): App.h Base.h Mem.h RMAP.h Session.h Utils.h
+    src\                         implementation + private headers + pch:
+       base\    Client.cpp Model.cpp Model_Object.cpp Model_Session.cpp Notification.cpp
+                Service.cpp Source.cpp Source_Session.cpp
+       core\    Core.cpp ModelClass.cpp Namespace.cpp ServiceClass.cpp SourceClass.cpp
+       mem\     Mem.cpp Mem_Model.cpp Mem_Source.cpp Objectbank.cpp Objectbank_Dep.cpp Objectbank_Ind.cpp
+       model\   Model_Session_C2a.cpp Model_Session_Null.cpp Model_Session_UiP.cpp
+       (root)   Library.cpp LibraryRMAP.cpp/.h Collection.h SharedObject.h LnG.cpp Logger.cpp
+                Package.cpp Plugin.cpp Registry.cpp Utils.cpp pch.cpp pch.h
+    third_party\json\            nlohmann_json, git-fetched at BUILD time (not committed)
+  RMAP_Svc_SB\
+    CMakeLists.txt               service project: OBJECT lib, source_group (identical bar name)
+    include\RMAP_Svc_SB\RMAP_Svc_SB.h    declares RMAP::Svc_SB_GetName()
     src\RMAP_Svc_SB.cpp
-  RMAP_Svc_Rest\                 # optional service
-    CMakeLists.txt
-    include\RMAP_Svc_Rest\RMAP_Svc_Rest.h    # declares RMAP::Svc_Rest_GetName()
-    src\RMAP_Svc_Rest.cpp
-  RMAP_Svc_SocketIO\             # optional service
-    CMakeLists.txt
-    include\RMAP_Svc_SocketIO\RMAP_Svc_SocketIO.h  # declares RMAP::Svc_SocketIO_GetName()
-    src\RMAP_Svc_SocketIO.cpp
-  .cursor\rules\project.mdc      # this file
+  RMAP_Svc_Rest\                 (same structure) declares RMAP::Svc_Rest_GetName()
+  RMAP_Svc_SocketIO\             (same structure) declares RMAP::Svc_SocketIO_GetName()
+  .cursor\rules\project.mdc      this file
 ```
 
-The `.cpp`/`.h` files are minimal standards-compliant placeholders (a name/version
-accessor each), present only so every OBJECT library has at least one real translation
-unit (an OBJECT library with no sources fails to configure). Replace them as real code
-lands. Public header include convention: `#include <RMAP/RMAP.h>`,
+Public header include convention: `#include <RMAP/RMAP.h>`,
 `#include <RMAP_Svc_SB/RMAP_Svc_SB.h>`, etc. (each module's public headers live under
-`include/<Module>/`).
+`include/<Module>/`). Core's `pch.h` includes `Collection.h`, `<RMAP.h>`, `LibraryRMAP.h`,
+`SharedObject.h` plus `<assert.h> <iostream> <fstream>`.
 
-## Architecture - How the single RMAP.lib is assembled
+## Architecture - How the single RMAP.lib is assembled (current design)
 
-Each module is a CMake **OBJECT** library (defined in its own `CMakeLists.txt`). The
-top-level `CMakeLists.txt` creates one `add_library(RMAP STATIC ...)` target and pulls in
-each enabled module's compiled objects via generator expressions:
+Each module has its own `CMakeLists.txt` (pulled in by `add_subdirectory` from the
+top-level file), so each becomes **its own Visual Studio project** (and its own target in
+every other generator).
 
-```cmake
-add_library(RMAP STATIC $<TARGET_OBJECTS:RMAP_Objects>)
-# ... then, guarded by each option:
-target_sources(RMAP PRIVATE $<TARGET_OBJECTS:RMAP_Svc_SB_Objects>)
-target_include_directories(RMAP PUBLIC $<BUILD_INTERFACE:.../RMAP_Svc_SB/include>)
-```
+- **Core** is `add_library(RMAP STATIC ...)`. This target **is** the final `RMAP.lib`.
+- **Each service** is `add_library(<name> OBJECT ...)`. The top-level file folds each
+  enabled service's compiled objects into the core archive with
+  `target_sources(RMAP PRIVATE $<TARGET_OBJECTS:<name>>)`. Because `$<TARGET_OBJECTS>`
+  adds objects as *sources* (not a link dependency), the deliverable stays one archive,
+  each object appears exactly once, and the install/export set is cleanly just `RMAP`.
+- Turning a service option OFF skips its `add_subdirectory` entirely, so its project
+  disappears from the generated solution and its objects never enter `RMAP.lib`. This is
+  the CMake-driven include/exclude DavidSr asked for.
 
-Public include dirs are declared PUBLIC on the final `RMAP` target: per-module
-`$<BUILD_INTERFACE:.../include>` while building, plus a single `$<INSTALL_INTERFACE:include>`
-for the installed/flattened layout. There is also an alias `RMAP::RMAP`.
+### KEY DECISION - target shapes (core STATIC + services OBJECT), 4 projects
 
-Within each module's own `CMakeLists.txt`: the OBJECT library sets `cxx_std_17`, a PUBLIC
-`$<BUILD_INTERFACE:.../include>`, and (for services only) a PRIVATE include of
-`$<TARGET_PROPERTY:RMAP_Objects,INTERFACE_INCLUDE_DIRECTORIES>` so service TUs can see
-core headers at compile time.
+This session's restructure chose **core = one STATIC target named `RMAP`** (which is the
+archive) plus **services = OBJECT libraries folded via `$<TARGET_OBJECTS>`**. Rationale:
 
-### KEY DECISION - assembly via `$<TARGET_OBJECTS>`, NOT `target_link_libraries`
+- This yields **exactly four module projects** (`RMAP`, `RMAP_Svc_SB`, `RMAP_Svc_Rest`,
+  `RMAP_Svc_SocketIO`), matching DavidSr's "separate project files for each project".
+- An earlier documented design (see History) made **core** an OBJECT library too
+  (`RMAP_Objects`) and added a *separate* final `RMAP` STATIC target that folded ALL
+  four object libraries. That works but produces **five** projects and makes core appear
+  twice (as `RMAP_Objects` and `RMAP`). The current shape avoids that duplication.
+- Do NOT switch services to `target_link_libraries(RMAP PUBLIC <objlib>)`: that records
+  the object library in `RMAP`'s `INTERFACE_LINK_LIBRARIES`, forcing every object lib
+  into the `install(EXPORT)` set (CMake errors) and installing stray artifacts.
 
-The approved plan's snippet showed `target_link_libraries(RMAP PUBLIC RMAP_Objects)` to
-merge the object libraries. During implementation this was changed to
-`$<TARGET_OBJECTS:...>` (objects added as sources) plus explicit
-`target_include_directories` on `RMAP`. Rationale (important - do not "fix" this back):
+### KEY DECISION - services see core headers without a link dependency
 
-- `target_link_libraries(RMAP PUBLIC <objlib>)` records the object library as a usage
-  requirement in `RMAP`'s `INTERFACE_LINK_LIBRARIES`. That forces every object library
-  into the `install(EXPORT RMAPTargets)` set (CMake errors: target not in any export set),
-  and would otherwise install stray intermediate artifacts.
-- `$<TARGET_OBJECTS:...>` bakes the compiled objects directly into the archive with **no**
-  link dependency. The export set is therefore cleanly just the `RMAP` target, and each
-  module's objects appear exactly once (no duplicate symbols).
-- Because core is always built, `RMAP` always has at least core's objects, so CMake
-  resolves the STATIC target's linker language without needing a dummy source file.
+Each service reads core's include dirs and compile definitions via
+`$<TARGET_PROPERTY:RMAP,INTERFACE_INCLUDE_DIRECTORIES>` and
+`$<TARGET_PROPERTY:RMAP,INTERFACE_COMPILE_DEFINITIONS>` (added PRIVATE), **not** via
+`target_link_libraries(<service> PRIVATE RMAP)`. Reason: `$<TARGET_OBJECTS:<service>>`
+already makes `RMAP` depend on the service (build order); linking the service to `RMAP`
+would create a dependency **cycle**. Reading target properties pulls the usage
+requirements at generate time without any dependency edge. (Generator expressions in the
+property, e.g. `$<INSTALL_INTERFACE:...>`, evaluate empty during build - fine.)
+This also gives services core's public include dir and, transitively, the nlohmann_json
+include (json include is added PUBLIC to `RMAP` at the top level).
 
-### Install / find_package
+### KEY DECISION - filters via source_group(TREE), disk-mirrored
+
+Each module's `CMakeLists.txt` calls `source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES
+${<Module>_FILES})`, producing Solution Explorer filters that mirror the on-disk folders:
+`src`, `src\base`, `src\core`, `src\mem`, `src\model`, `include\RMAP`. **Headers are
+listed as target sources** (in the `*_FILES` list) so they show in the project and get
+filtered too. CMake also auto-adds `Source Files`, `Object Libraries` (the folded service
+`.obj`s under `RMAP`), and `Precompile Header File` filters.
+
+DavidSr accepted disk-mirrored filter names (`src\base`) over the old hand-authored
+prefixed style (`Source Files\Base` / `Header Files\...`). If he later wants the prefixed
+style, switch to two `source_group(TREE ... PREFIX "Source Files"/"Header Files" ...)`
+calls split by extension.
+
+### nlohmann_json
+
+`RMAP.h` exposes `nlohmann::ordered_json` in its public API. Option `RMAP_USE_SYSTEM_JSON`
+(OFF default): OFF fetches the header-only lib from git at **build** time (v3.11.3, via
+`ExternalProject_Add`) into `RMAP/third_party/json/` (not committed; `RMAP` depends on the
+`nlohmann_json_fetch` target and gets `$<BUILD_INTERFACE:.../json/include>` PUBLIC). ON
+uses `find_package(nlohmann_json 3.11.3 CONFIG REQUIRED)` + links
+`nlohmann_json::nlohmann_json`. Modeled on `C:\Dev\OMB\fRMAP\RMAP_Core`.
+
+### Install / find_package (top-level, unchanged by the restructure)
 
 `install(TARGETS RMAP EXPORT RMAPTargets ARCHIVE DESTINATION lib)`, per-module
 `install(DIRECTORY <Module>/include/ DESTINATION include)` (guarded by each option),
 `install(EXPORT RMAPTargets NAMESPACE RMAP:: ...)`, and
 `configure_package_config_file` + `write_basic_package_version_file` using
-`cmake/RMAPConfig.cmake.in` so downstream projects can `find_package(RMAP)` and link
-`RMAP::RMAP`. Package config installs to `lib/cmake/RMAP`.
+`cmake/RMAPConfig.cmake.in`. Downstream: `find_package(RMAP CONFIG REQUIRED)` +
+`target_link_libraries(... RMAP::RMAP)`. Package config installs to `lib/cmake/RMAP`.
+
+### MSVC settings
+
+Core (and each service, for symmetry/future real code) applies under `if(MSVC)`:
+`UNICODE _UNICODE _LIB` (PRIVATE), `/permissive- /sdl /W3`. Core additionally sets
+`INTERPROCEDURAL_OPTIMIZATION_RELEASE ON`. Core uses PCH
+(`target_precompile_headers(RMAP PRIVATE src/pch.h)`); services have **no PCH** yet
+(placeholders have no `pch.h`) - add per-service PCH matching core when real code lands.
 
 ## Build & Verify
 
 Toolchain confirmed on this machine: CMake 3.30.3; Visual Studio 17 2022 / MSVC
-19.44 (auto-detected by CMake's default VS generator). MSVC `cl` is NOT on the plain
-PowerShell PATH, but the VS generator locates it, so a VS Developer prompt is not
-required for the default generator.
+19.44 (auto-detected by CMake's default VS generator; a VS Developer prompt is not
+required). Shell is PowerShell - `&&` is NOT a valid statement separator; chain with `;`.
 
 ```powershell
-# Default (all services)
-cmake -S . -B build
-cmake --build build --config Release          # -> build\Release\RMAP.lib
+# Configure the VS solution (all services)
+cmake --preset vs2022            # -> build\RMAP.sln (4 module projects)
+start build\RMAP.sln             # open in IDE, or:
+cmake --build --preset vs2022-release   # -> build\RMAP\Release\RMAP.lib
 
-# Exclude services (example)
-cmake -S . -B build_excl -DRMAP_BUILD_SVC_REST=OFF -DRMAP_BUILD_SVC_SOCKETIO=OFF
-cmake --build build_excl --config Release      # -> build_excl\Release\RMAP.lib (core + SB only)
+# Exclude a service (regenerate; that's the only step)
+cmake --preset vs2022 -DRMAP_BUILD_SVC_REST=OFF
 ```
 
-Inspect symbols with dumpbin (path may vary by MSVC version):
-`& "<...>\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\dumpbin.exe" /linkermember:1 build\Release\RMAP.lib`
+Inspect symbols with dumpbin:
+`& "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\dumpbin.exe" /linkermember:1 build\RMAP\Release\RMAP.lib`
 
-### Verification results (2026-07-23)
-- Default build produced exactly one deliverable, `build\Release\RMAP.lib`, containing
-  all four modules' symbols: `?GetName@RMAP@@`, `?GetVersion@RMAP@@`,
-  `?Svc_SB_GetName@RMAP@@`, `?Svc_Rest_GetName@RMAP@@`, `?Svc_SocketIO_GetName@RMAP@@`.
-- Exclusion build (`-DRMAP_BUILD_SVC_REST=OFF -DRMAP_BUILD_SVC_SOCKETIO=OFF`) produced
-  one `RMAP.lib` with only core + `Svc_SB`; REST and SocketIO symbols were absent.
-- Note on intermediate `.lib` files: under `build\<module>\<module>.dir\Release\` MSVC
-  emits a per-OBJECT-library `.lib` (e.g. `RMAP_Objects.lib`). These are MSVC build
-  byproducts, NOT deliverables and NOT installed. The only deliverable is
-  `build\<config>\RMAP.lib`.
-- Both throwaway build directories were deleted after verification; only source remains.
+### Verification results (2026-07-24, this session's restructure)
+- `cmake --preset vs2022` generated **four module projects** in `build\RMAP.sln`
+  (`RMAP`, `RMAP_Svc_SB`, `RMAP_Svc_Rest`, `RMAP_Svc_SocketIO`) plus CMake's usual
+  `ALL_BUILD`, `ZERO_CHECK`, `INSTALL`, and `nlohmann_json_fetch` helper projects.
+- Each module `.vcxproj.filters` mirrors its folders (`src\base`, `src\core`, `src\mem`,
+  `src\model`, `include\RMAP`). The `RMAP` project also lists the three folded service
+  `.obj`s under an "Object Libraries" filter.
+- Release build produced exactly one deliverable, `build\RMAP\Release\RMAP.lib`.
+  `dumpbin /linkermember:1` confirmed the three service symbols
+  (`?Svc_SB_GetName@RMAP@@`, `?Svc_Rest_GetName@RMAP@@`, `?Svc_SocketIO_GetName@RMAP@@`)
+  are merged into that single archive.
+- Exclusion check: configuring with `-DRMAP_BUILD_SVC_REST=OFF` dropped the
+  `RMAP_Svc_Rest` project from the generated solution; the other two services remained.
+- Note on intermediate `.lib` files: under `build\RMAP_Svc_*\RMAP_Svc_*.dir\<config>\`
+  MSVC emits a per-OBJECT-library `.lib`/`.obj`. Those are build byproducts, NOT
+  deliverables and NOT installed. The only deliverable is `build\RMAP\<config>\RMAP.lib`.
+- Cleanup: the throwaway `build_excl` config dir was deleted; the main `build\` dir was
+  left in place (it is gitignored) as the working generated solution.
 
 ## Conventions
 
@@ -163,45 +209,74 @@ All Metaversal standards apply (see global `~/.cursor/rules/*.mdc`): 3-space ind
 Allman braces, Hungarian notation, single return, ALL-CAPS types/constants, Capital-first
 function names, no tabs, no Python, symmetry (Rule 1). The four modules are structured
 symmetrically: the three service `CMakeLists.txt` files are line-for-line identical except
-the module name; the core `CMakeLists.txt` differs only by omitting the core-header
-propagation line (it does not need to include itself).
+the module name; the core `CMakeLists.txt` differs by being STATIC (not OBJECT), listing
+its full source tree, and adding PCH.
 
-Target naming: the final STATIC target is `RMAP` (produces `RMAP.lib`); the OBJECT
-targets are `<Module>_Objects` (chosen so the core object target `RMAP_Objects` does not
-collide with the final `RMAP` target name). CMake options are `RMAP_BUILD_SVC_<NAME>`.
+Target naming: the final STATIC target is `RMAP` (produces `RMAP.lib`); each service
+OBJECT target is named for its module (`RMAP_Svc_SB`, etc.). CMake options are
+`RMAP_BUILD_SVC_<NAME>` plus `RMAP_USE_SYSTEM_JSON`.
 
 ## History Note - the phantom RMAP_Core / RMAP_SB tree
 
-At the very first session start, the environment's git-status snapshot listed a large,
-coherent codebase under `RMAP_Core/` and `RMAP_SB/` (Hungarian-named C++: `Objectbank.cpp`,
+At the very first session start, the environment's git-status snapshot listed a large
+codebase under `RMAP_Core/` and `RMAP_SB/` (Hungarian-named C++: `Objectbank.cpp`,
 `Model_Session_*.cpp`, `ByteStream.cpp`, MSVC `.vcxproj`, `RMAP_CoreConfig.cmake.in`,
-`win32/dllmain.cpp`/`.rc` DLL glue, etc.). That tree does NOT exist: the repo is a fresh
-clone with a single "Initial commit" containing only `LICENSE` and `README.md`; nothing
-on disk, in any branch, stash, or reflog. DavidSr confirmed we are starting green-field.
-The old names informed the current design (RMAP core, an SB service), and the old DLL glue
-was deliberately dropped because this is a static-library-only, cross-platform build.
+`win32/dllmain.cpp`/`.rc` DLL glue, etc.). That tree did NOT exist on disk - the repo was
+a fresh clone. DavidSr confirmed a green-field start. The old names informed the current
+design; the old DLL glue was dropped (static-library-only, cross-platform). A real
+reference project exists at `C:\Dev\OMB\fRMAP\RMAP_Core` (used to model the nlohmann_json
+option and, transiently, the hand-authored MSVC conventions).
+
+## History Note - the hand-authored MSVC solution, and the pivot that dropped it
+
+In session c52048db (2026-07-23) the sequence was: (1) build the initial CMake scaffold;
+(2) DavidSr added real core source; (3) he asked for hand-authored MSVC project files
+"like our other projects" with PCH and filters, so the agent created `RMAP.sln` +
+`<Module>/msvc/<Module>.vcxproj` + `.vcxproj.filters` for all four modules (folding the
+three services into `RMAP.lib` via "Use Library Dependency Inputs"), plus per-service
+`pch.h`/`pch.cpp`, mirroring `fRMAP/RMAP_Core`; (4) the nlohmann_json option was added;
+(5) DavidSr then asked to "control everything from CMake" and have CMake generate the VS
+project. To do that the agent **deleted** the hand-authored `.sln`/`.vcxproj`/`.filters`
+and per-service `pch` files and collapsed the whole build into a **single**
+`add_library(RMAP STATIC ...)` target (all four modules' sources in one target) plus
+`CMakePresets.json`. That single-target version is what got committed in `854dd3f`.
+
+Those hand-authored MSVC files were **never committed** (git history has none), so they
+cannot be `git restore`d. Their exact contents survive only in the c52048db transcript.
+
+In session 4c9a62e1 (2026-07-24, this session) DavidSr said that collapse was a mistake:
+he wanted **separate project files per module** and his **filters back**. Offered three
+paths (restore the hand-authored msvc/ solution; stay CMake-driven with per-module
+targets + `source_group`; or both), he chose **stay CMake-driven**. Hence the current
+per-module `CMakeLists.txt` restructure. The hand-authored MSVC solution was deliberately
+NOT restored.
 
 ## Open Questions / Next Steps
 
-- Real source: the implementation for all four modules is still to be added. When it
-  arrives, replace the placeholder `GetName`/`GetVersion` stubs.
-- Define the concrete responsibilities and public APIs of RMAP core and each service
-  (SB / Rest / SocketIO). Currently only inferred, not verified.
-- Cross-platform is designed but only verified on MSVC/Windows so far. Verify on
-  Linux (GCC/Clang) and macOS (AppleClang) when a toolchain is available.
-- Third-party dependencies (e.g. a REST library, a Socket.IO library, sockets for SB)
-  are not yet introduced; each service module's `CMakeLists.txt` will need `find_package`
-  / `target_link_libraries` for its externals once real code lands.
-- Consider whether a formal Job (`Job/<name>/job.mdc`) should track the RMAP build-out,
-  or whether project-level tracking here suffices. Currently project-level only.
-- Standards freshness check: the authoritative freshness-check procedure lives in the
-  Cursor standards project, not here. RMAP does not currently run one.
+- Real service source: `RMAP_Svc_SB/Rest/SocketIO` are still one-line placeholders.
+  When real code lands, add per-service PCH matching core, and add each service's
+  external dependencies (`find_package`/`target_link_libraries`) in its `CMakeLists.txt`.
+- Define the concrete responsibilities and public APIs of each service (SB / Rest /
+  SocketIO). Currently inferred, not verified.
+- Cross-platform is designed but only verified on MSVC/Windows. Verify on Linux
+  (GCC/Clang) and macOS (AppleClang) when a toolchain is available.
+- Filter style: currently disk-mirrored (`src\base`). Switch to `Source Files\...` /
+  `Header Files\...` prefixed style if DavidSr prefers his old hand-authored layout.
+- Commit: the new per-module `CMakeLists.txt` files and the rewritten top-level file are
+  untracked/modified and not yet committed.
+- Standards freshness check: not currently run for RMAP (authoritative procedure lives in
+  the Cursor standards project).
 
 ## Work History
 
-- 2026-07-23 (DavidSr): Designed and implemented the green-field CMake scaffold for
-  `RMAP.lib` - top-level + four per-module `CMakeLists.txt`, placeholder sources/headers,
-  `.gitignore`, `cmake/RMAPConfig.cmake.in`, and install/export. Chose the
-  `$<TARGET_OBJECTS>` assembly over `target_link_libraries` for clean install/export
-  (rationale above). Verified default and exclusion builds on MSVC; confirmed a single
-  `RMAP.lib` with correct per-option symbol content. Created this resume point.
+- 2026-07-23 (DavidSr): Designed/implemented the green-field CMake scaffold; added real
+  core source; briefly hand-authored a four-project MSVC solution with PCH + filters, then
+  pivoted to a CMake-only single-target build (committed in `854dd3f`). Added the
+  nlohmann_json fetch/system option. (See History Notes above for the full chain.)
+- 2026-07-24 (DavidSr): Corrected the single-target collapse. Restructured the build into
+  per-module `CMakeLists.txt` (core = STATIC `RMAP` = the archive; services = OBJECT libs
+  folded via `$<TARGET_OBJECTS>`), added `source_group(TREE)` for folder-mirroring filters,
+  and made services read core usage requirements via `$<TARGET_PROPERTY>` to avoid a build
+  cycle. Verified: 4 module projects generated with filters, one `RMAP.lib` containing all
+  service symbols, and `RMAP_BUILD_SVC_REST=OFF` drops that project. Updated `README.md`
+  (repo layout + multi-project note) and this resume point.

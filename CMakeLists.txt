@@ -16,8 +16,8 @@ endif()
 # ---------------------------------------------------------------------------
 # Options. Each service module can be excluded from RMAP.lib; the RMAP core is
 # always present because every service depends on it. Turning a service OFF
-# drops its sources from the single RMAP target, so the generated Visual Studio
-# solution (and every other generator) simply won't contain that module.
+# drops its subdirectory entirely, so the generated Visual Studio solution (and
+# every other generator) simply won't contain that module's project.
 # ---------------------------------------------------------------------------
 
 option(RMAP_BUILD_SVC_SB       "Build the SB service module into RMAP.lib"       ON)
@@ -27,88 +27,35 @@ option(RMAP_BUILD_SVC_SOCKETIO "Build the SocketIO service module into RMAP.lib"
 option(RMAP_USE_SYSTEM_JSON "Use an external nlohmann_json (find_package) instead of the git-fetched copy" OFF)
 
 # ---------------------------------------------------------------------------
-# The single deliverable: RMAP.lib. Everything is compiled into this one target
-# so exactly one archive is produced. Keep this core source list in step with
-# the actual files under RMAP/src.
+# Modules. Each module is its own Visual Studio project:
+#   - RMAP (core) is a STATIC library and IS the single deliverable, RMAP.lib.
+#   - Each RMAP_Svc_* is an OBJECT library whose compiled objects are folded
+#     into RMAP.lib via $<TARGET_OBJECTS>. Because that adds objects as sources
+#     (not a link dependency), the install/export set stays cleanly just RMAP
+#     and each object appears exactly once with no duplicate symbols.
 # ---------------------------------------------------------------------------
 
-add_library(RMAP STATIC
-   RMAP/src/base/Client.cpp
-   RMAP/src/base/Model.cpp
-   RMAP/src/base/Model_Object.cpp
-   RMAP/src/base/Model_Session.cpp
-   RMAP/src/base/Notification.cpp
-   RMAP/src/base/Service.cpp
-   RMAP/src/base/Source.cpp
-   RMAP/src/base/Source_Session.cpp
-   RMAP/src/core/Core.cpp
-   RMAP/src/core/ModelClass.cpp
-   RMAP/src/core/Namespace.cpp
-   RMAP/src/core/ServiceClass.cpp
-   RMAP/src/core/SourceClass.cpp
-   RMAP/src/mem/Mem.cpp
-   RMAP/src/mem/Mem_Model.cpp
-   RMAP/src/mem/Mem_Source.cpp
-   RMAP/src/mem/Objectbank.cpp
-   RMAP/src/mem/Objectbank_Dep.cpp
-   RMAP/src/mem/Objectbank_Ind.cpp
-   RMAP/src/model/Model_Session_C2a.cpp
-   RMAP/src/model/Model_Session_Null.cpp
-   RMAP/src/model/Model_Session_UiP.cpp
-   RMAP/src/Library.cpp
-   RMAP/src/LibraryRMAP.cpp
-   RMAP/src/LnG.cpp
-   RMAP/src/Logger.cpp
-   RMAP/src/Package.cpp
-   RMAP/src/pch.cpp
-   RMAP/src/Plugin.cpp
-   RMAP/src/Registry.cpp
-   RMAP/src/Utils.cpp)
-
-add_library(RMAP::RMAP ALIAS RMAP)
-
-target_compile_features(RMAP PUBLIC cxx_std_17)
-
-# Static build: RMAP.h's export macro expands to nothing.
-target_compile_definitions(RMAP PUBLIC RMAP_CORE_API=)
-
-target_include_directories(RMAP
-   PUBLIC
-      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/RMAP/include>
-      $<INSTALL_INTERFACE:include>
-   PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}/RMAP/include/RMAP
-      ${CMAKE_CURRENT_SOURCE_DIR}/RMAP/src)
-
-# MSVC parity with the previous hand-authored project settings.
-if(MSVC)
-   target_compile_definitions(RMAP PRIVATE UNICODE _UNICODE _LIB)
-   target_compile_options(RMAP PRIVATE /permissive- /sdl /W3)
-   set_target_properties(RMAP PROPERTIES
-      INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
-endif()
-
-# ---------------------------------------------------------------------------
-# Optional service modules. Each enabled module contributes its sources and
-# public headers to the same RMAP target, so they land in the one RMAP.lib.
-# ---------------------------------------------------------------------------
+add_subdirectory(RMAP)
 
 if(RMAP_BUILD_SVC_SB)
-   target_sources(RMAP PRIVATE RMAP_Svc_SB/src/RMAP_Svc_SB.cpp)
+   add_subdirectory(RMAP_Svc_SB)
+   target_sources(RMAP PRIVATE $<TARGET_OBJECTS:RMAP_Svc_SB>)
    target_include_directories(RMAP PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/RMAP_Svc_SB/include>
       $<INSTALL_INTERFACE:include>)
 endif()
 
 if(RMAP_BUILD_SVC_REST)
-   target_sources(RMAP PRIVATE RMAP_Svc_Rest/src/RMAP_Svc_Rest.cpp)
+   add_subdirectory(RMAP_Svc_Rest)
+   target_sources(RMAP PRIVATE $<TARGET_OBJECTS:RMAP_Svc_Rest>)
    target_include_directories(RMAP PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/RMAP_Svc_Rest/include>
       $<INSTALL_INTERFACE:include>)
 endif()
 
 if(RMAP_BUILD_SVC_SOCKETIO)
-   target_sources(RMAP PRIVATE RMAP_Svc_SocketIO/src/RMAP_Svc_SocketIO.cpp)
+   add_subdirectory(RMAP_Svc_SocketIO)
+   target_sources(RMAP PRIVATE $<TARGET_OBJECTS:RMAP_Svc_SocketIO>)
    target_include_directories(RMAP PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/RMAP_Svc_SocketIO/include>
       $<INSTALL_INTERFACE:include>)
@@ -150,8 +97,6 @@ else()
    target_include_directories(RMAP PUBLIC
       $<BUILD_INTERFACE:${RMAP_JSON_DIR}/include>)
 endif()
-
-target_precompile_headers(RMAP PRIVATE RMAP/src/pch.h)
 
 # ---------------------------------------------------------------------------
 # Install + find_package(RMAP) support -> target RMAP::RMAP
