@@ -1,0 +1,38 @@
+{
+   "version": 3,
+   "cmakeMinimumRequired": {
+      "major": 3,
+      "minor": 21,
+      "patch": 0
+   },
+   "configurePresets": [
+      {
+         "name": "vs2022",
+         "displayName": "Visual Studio 2022 (x64)",
+         "description": "Generate the Visual Studio solution. Flip the RMAP_BUILD_SVC_* toggles to include/exclude service modules from RMAP.lib.",
+         "generator": "Visual Studio 17 2022",
+         "architecture": "x64",
+         "binaryDir": "${sourceDir}/build",
+         "cacheVariables": {
+            "RMAP_BUILD_SVC_SB": "ON",
+            "RMAP_BUILD_SVC_REST": "ON",
+            "RMAP_BUILD_SVC_SOCKETIO": "ON",
+            "RMAP_USE_SYSTEM_JSON": "OFF"
+         }
+      }
+   ],
+   "buildPresets": [
+      {
+         "name": "vs2022-debug",
+         "displayName": "VS 2022 - Debug",
+         "configurePreset": "vs2022",
+         "configuration": "Debug"
+      },
+      {
+         "name": "vs2022-release",
+         "displayName": "VS 2022 - Release",
+         "configurePreset": "vs2022",
+         "configuration": "Release"
+      }
+   ]
+}

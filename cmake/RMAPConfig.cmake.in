@@ -1,0 +1,13 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# When RMAP was built against an external nlohmann_json, its headers appear in
+# the public API (RMAP.h), so consumers need the same package.
+if(@RMAP_USE_SYSTEM_JSON@)
+   find_dependency(nlohmann_json 3.11.3)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/RMAPTargets.cmake")
+
+check_required_components(RMAP)

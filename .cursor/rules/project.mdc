@@ -1,0 +1,207 @@
+---
+description: RMAP project resume point - overview, architecture, decisions, conventions, work history, and open questions. Read first at session start.
+alwaysApply: true
+---
+
+# RMAP - Project Resume Point
+
+This file is the AI agent's memory for the RMAP project. It is read first at session
+start and updated at the end of every substantive session. It follows the completeness
+rule (see `standards-meta.mdc`): record decisions, the reasoning behind them, what was
+deferred and why, and what the agent got wrong - not just conclusions.
+
+## Project Overview
+
+RMAP is a C++ project whose deliverable is a **single static library, `RMAP.lib`**
+(`libRMAP.a` on GCC/Clang), composed of four logical "modules". The four modules are
+**not** shipped as separate libraries - they are compiled independently but merged into
+one archive. Any of the three service modules can be excluded from the build via a CMake
+option; the RMAP core is always present.
+
+Repository: `https://github.com/MetaversalCorp/RMAP.git` (cloned to `C:\Dev\OMB\RMAP`).
+
+### The four modules
+
+| Module | Folder | Role | Toggle | Object target |
+|--------|--------|------|--------|---------------|
+| RMAP (core) | `RMAP/` | Core foundation; every service depends on it | Always built | `RMAP_Objects` |
+| RMAP_Svc_SB | `RMAP_Svc_SB/` | SB service layer | `RMAP_BUILD_SVC_SB` (ON) | `RMAP_Svc_SB_Objects` |
+| RMAP_Svc_Rest | `RMAP_Svc_Rest/` | REST service layer | `RMAP_BUILD_SVC_REST` (ON) | `RMAP_Svc_Rest_Objects` |
+| RMAP_Svc_SocketIO | `RMAP_Svc_SocketIO/` | SocketIO service layer | `RMAP_BUILD_SVC_SOCKETIO` (ON) | `RMAP_Svc_SocketIO_Objects` |
+
+Module relationship (confirmed by DavidSr): RMAP is the core foundation; the three
+`RMAP_Svc_*` modules are independent service layers that all depend on RMAP core, but do
+NOT depend on each other. The exact responsibilities of SB / Rest / SocketIO have not yet
+been defined in detail - SB appears to be a byte-stream/socket protocol backend (the old,
+now-absent `RMAP_SB` tree contained `ByteStream.cpp`, `Net.cpp`, `Subscription.cpp`,
+etc.), Rest a REST backend, SocketIO a Socket.IO backend. Treat these as open until the
+real source arrives.
+
+## Current State (as of 2026-07-23)
+
+Green-field scaffold is complete and verified building on MSVC. Only placeholder source
+exists so far; real implementation source is to be added later.
+
+### File inventory
+
+```
+C:\Dev\OMB\RMAP\
+  CMakeLists.txt                 # top-level: project(), options, assembles single RMAP.lib, install/export
+  cmake\RMAPConfig.cmake.in      # find_package(RMAP) package config template
+  .gitignore                     # ignores build output + CMake artifacts
+  LICENSE                        # from initial commit
+  README.md                      # from initial commit (single line "# RMAP")
+  RMAP\                          # core module (always built)
+    CMakeLists.txt
+    include\RMAP\RMAP.h          # declares RMAP::GetName(), RMAP::GetVersion()
+    src\RMAP.cpp
+  RMAP_Svc_SB\                   # optional service
+    CMakeLists.txt
+    include\RMAP_Svc_SB\RMAP_Svc_SB.h        # declares RMAP::Svc_SB_GetName()
+    src\RMAP_Svc_SB.cpp
+  RMAP_Svc_Rest\                 # optional service
+    CMakeLists.txt
+    include\RMAP_Svc_Rest\RMAP_Svc_Rest.h    # declares RMAP::Svc_Rest_GetName()
+    src\RMAP_Svc_Rest.cpp
+  RMAP_Svc_SocketIO\             # optional service
+    CMakeLists.txt
+    include\RMAP_Svc_SocketIO\RMAP_Svc_SocketIO.h  # declares RMAP::Svc_SocketIO_GetName()
+    src\RMAP_Svc_SocketIO.cpp
+  .cursor\rules\project.mdc      # this file
+```
+
+The `.cpp`/`.h` files are minimal standards-compliant placeholders (a name/version
+accessor each), present only so every OBJECT library has at least one real translation
+unit (an OBJECT library with no sources fails to configure). Replace them as real code
+lands. Public header include convention: `#include <RMAP/RMAP.h>`,
+`#include <RMAP_Svc_SB/RMAP_Svc_SB.h>`, etc. (each module's public headers live under
+`include/<Module>/`).
+
+## Architecture - How the single RMAP.lib is assembled
+
+Each module is a CMake **OBJECT** library (defined in its own `CMakeLists.txt`). The
+top-level `CMakeLists.txt` creates one `add_library(RMAP STATIC ...)` target and pulls in
+each enabled module's compiled objects via generator expressions:
+
+```cmake
+add_library(RMAP STATIC $<TARGET_OBJECTS:RMAP_Objects>)
+# ... then, guarded by each option:
+target_sources(RMAP PRIVATE $<TARGET_OBJECTS:RMAP_Svc_SB_Objects>)
+target_include_directories(RMAP PUBLIC $<BUILD_INTERFACE:.../RMAP_Svc_SB/include>)
+```
+
+Public include dirs are declared PUBLIC on the final `RMAP` target: per-module
+`$<BUILD_INTERFACE:.../include>` while building, plus a single `$<INSTALL_INTERFACE:include>`
+for the installed/flattened layout. There is also an alias `RMAP::RMAP`.
+
+Within each module's own `CMakeLists.txt`: the OBJECT library sets `cxx_std_17`, a PUBLIC
+`$<BUILD_INTERFACE:.../include>`, and (for services only) a PRIVATE include of
+`$<TARGET_PROPERTY:RMAP_Objects,INTERFACE_INCLUDE_DIRECTORIES>` so service TUs can see
+core headers at compile time.
+
+### KEY DECISION - assembly via `$<TARGET_OBJECTS>`, NOT `target_link_libraries`
+
+The approved plan's snippet showed `target_link_libraries(RMAP PUBLIC RMAP_Objects)` to
+merge the object libraries. During implementation this was changed to
+`$<TARGET_OBJECTS:...>` (objects added as sources) plus explicit
+`target_include_directories` on `RMAP`. Rationale (important - do not "fix" this back):
+
+- `target_link_libraries(RMAP PUBLIC <objlib>)` records the object library as a usage
+  requirement in `RMAP`'s `INTERFACE_LINK_LIBRARIES`. That forces every object library
+  into the `install(EXPORT RMAPTargets)` set (CMake errors: target not in any export set),
+  and would otherwise install stray intermediate artifacts.
+- `$<TARGET_OBJECTS:...>` bakes the compiled objects directly into the archive with **no**
+  link dependency. The export set is therefore cleanly just the `RMAP` target, and each
+  module's objects appear exactly once (no duplicate symbols).
+- Because core is always built, `RMAP` always has at least core's objects, so CMake
+  resolves the STATIC target's linker language without needing a dummy source file.
+
+### Install / find_package
+
+`install(TARGETS RMAP EXPORT RMAPTargets ARCHIVE DESTINATION lib)`, per-module
+`install(DIRECTORY <Module>/include/ DESTINATION include)` (guarded by each option),
+`install(EXPORT RMAPTargets NAMESPACE RMAP:: ...)`, and
+`configure_package_config_file` + `write_basic_package_version_file` using
+`cmake/RMAPConfig.cmake.in` so downstream projects can `find_package(RMAP)` and link
+`RMAP::RMAP`. Package config installs to `lib/cmake/RMAP`.
+
+## Build & Verify
+
+Toolchain confirmed on this machine: CMake 3.30.3; Visual Studio 17 2022 / MSVC
+19.44 (auto-detected by CMake's default VS generator). MSVC `cl` is NOT on the plain
+PowerShell PATH, but the VS generator locates it, so a VS Developer prompt is not
+required for the default generator.
+
+```powershell
+# Default (all services)
+cmake -S . -B build
+cmake --build build --config Release          # -> build\Release\RMAP.lib
+
+# Exclude services (example)
+cmake -S . -B build_excl -DRMAP_BUILD_SVC_REST=OFF -DRMAP_BUILD_SVC_SOCKETIO=OFF
+cmake --build build_excl --config Release      # -> build_excl\Release\RMAP.lib (core + SB only)
+```
+
+Inspect symbols with dumpbin (path may vary by MSVC version):
+`& "<...>\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\dumpbin.exe" /linkermember:1 build\Release\RMAP.lib`
+
+### Verification results (2026-07-23)
+- Default build produced exactly one deliverable, `build\Release\RMAP.lib`, containing
+  all four modules' symbols: `?GetName@RMAP@@`, `?GetVersion@RMAP@@`,
+  `?Svc_SB_GetName@RMAP@@`, `?Svc_Rest_GetName@RMAP@@`, `?Svc_SocketIO_GetName@RMAP@@`.
+- Exclusion build (`-DRMAP_BUILD_SVC_REST=OFF -DRMAP_BUILD_SVC_SOCKETIO=OFF`) produced
+  one `RMAP.lib` with only core + `Svc_SB`; REST and SocketIO symbols were absent.
+- Note on intermediate `.lib` files: under `build\<module>\<module>.dir\Release\` MSVC
+  emits a per-OBJECT-library `.lib` (e.g. `RMAP_Objects.lib`). These are MSVC build
+  byproducts, NOT deliverables and NOT installed. The only deliverable is
+  `build\<config>\RMAP.lib`.
+- Both throwaway build directories were deleted after verification; only source remains.
+
+## Conventions
+
+All Metaversal standards apply (see global `~/.cursor/rules/*.mdc`): 3-space indent,
+Allman braces, Hungarian notation, single return, ALL-CAPS types/constants, Capital-first
+function names, no tabs, no Python, symmetry (Rule 1). The four modules are structured
+symmetrically: the three service `CMakeLists.txt` files are line-for-line identical except
+the module name; the core `CMakeLists.txt` differs only by omitting the core-header
+propagation line (it does not need to include itself).
+
+Target naming: the final STATIC target is `RMAP` (produces `RMAP.lib`); the OBJECT
+targets are `<Module>_Objects` (chosen so the core object target `RMAP_Objects` does not
+collide with the final `RMAP` target name). CMake options are `RMAP_BUILD_SVC_<NAME>`.
+
+## History Note - the phantom RMAP_Core / RMAP_SB tree
+
+At the very first session start, the environment's git-status snapshot listed a large,
+coherent codebase under `RMAP_Core/` and `RMAP_SB/` (Hungarian-named C++: `Objectbank.cpp`,
+`Model_Session_*.cpp`, `ByteStream.cpp`, MSVC `.vcxproj`, `RMAP_CoreConfig.cmake.in`,
+`win32/dllmain.cpp`/`.rc` DLL glue, etc.). That tree does NOT exist: the repo is a fresh
+clone with a single "Initial commit" containing only `LICENSE` and `README.md`; nothing
+on disk, in any branch, stash, or reflog. DavidSr confirmed we are starting green-field.
+The old names informed the current design (RMAP core, an SB service), and the old DLL glue
+was deliberately dropped because this is a static-library-only, cross-platform build.
+
+## Open Questions / Next Steps
+
+- Real source: the implementation for all four modules is still to be added. When it
+  arrives, replace the placeholder `GetName`/`GetVersion` stubs.
+- Define the concrete responsibilities and public APIs of RMAP core and each service
+  (SB / Rest / SocketIO). Currently only inferred, not verified.
+- Cross-platform is designed but only verified on MSVC/Windows so far. Verify on
+  Linux (GCC/Clang) and macOS (AppleClang) when a toolchain is available.
+- Third-party dependencies (e.g. a REST library, a Socket.IO library, sockets for SB)
+  are not yet introduced; each service module's `CMakeLists.txt` will need `find_package`
+  / `target_link_libraries` for its externals once real code lands.
+- Consider whether a formal Job (`Job/<name>/job.mdc`) should track the RMAP build-out,
+  or whether project-level tracking here suffices. Currently project-level only.
+- Standards freshness check: the authoritative freshness-check procedure lives in the
+  Cursor standards project, not here. RMAP does not currently run one.
+
+## Work History
+
+- 2026-07-23 (DavidSr): Designed and implemented the green-field CMake scaffold for
+  `RMAP.lib` - top-level + four per-module `CMakeLists.txt`, placeholder sources/headers,
+  `.gitignore`, `cmake/RMAPConfig.cmake.in`, and install/export. Chose the
+  `$<TARGET_OBJECTS>` assembly over `target_link_libraries` for clean install/export
+  (rationale above). Verified default and exclusion builds on MSVC; confirmed a single
+  `RMAP.lib` with correct per-option symbol content. Created this resume point.
