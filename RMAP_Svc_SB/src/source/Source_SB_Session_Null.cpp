@@ -1,6 +1,6 @@
 /*******************************************************************************************************************************
 **                                                                                                                            **
-**                                               MVSB_cpp : Source_SB_SESSION_NULL.cpp                                        **
+**                                               RMAP_SVC_SB : Source_SB_SESSION_NULL.cpp                                     **
 **                                                                                                                            **
 ********************************************************************************************************************************
 **                              Copyright 2014-2024 Metaversal Corporation. All rights reserved.                              **
@@ -47,7 +47,7 @@ SB_SESSION_NULL::~SB_SESSION_NULL ()
 
 SB_SESSION_NULL::FACTORY* SB_SESSION_NULL::factory ()
 {
-   return new FACTORY ("MVSB", "Session_Null", aAction);
+   return new FACTORY ("RMAP_Svc_SB", "Session_Null", aAction);
 }
 
 // ===== Client Methods =====================================================================================================

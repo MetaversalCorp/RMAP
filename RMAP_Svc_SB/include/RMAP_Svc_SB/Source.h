@@ -1,13 +1,13 @@
 /*******************************************************************************************************************************
 **                                                                                                                            **
-**                                                      MVSB_cpp : MVSB_Source.h                                              **
+**                                                      RMAP_Svc_SB : Source.h                                                **
 **                                                                                                                            **
 ********************************************************************************************************************************
 **                              Copyright 2014-2024 Metaversal Corporation. All rights reserved.                              **
 *******************************************************************************************************************************/
 
-#ifndef MV_MVSB_SOURCE_H
-#define MV_MVSB_SOURCE_H
+#ifndef RMAP_SVC_SB_SOURCE_H
+#define RMAP_SVC_SB_SOURCE_H
 
 namespace RMAP
 {
@@ -125,4 +125,4 @@ namespace RMAP
       };
    }
 }
-#endif //MV_MVSB_SOURCE_H
+#endif //RMAP_SVC_SB_SOURCE_H

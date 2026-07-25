@@ -1,13 +1,13 @@
 /*******************************************************************************************************************************
 **                                                                                                                            **
-**                                                      MVSB_cpp : MVSB_Client.h                                              **
+**                                                      RMAP_Svc_SB : Client.h                                                **
 **                                                                                                                            **
 ********************************************************************************************************************************
 **                              Copyright 2014-2024 Metaversal Corporation. All rights reserved.                              **
 *******************************************************************************************************************************/
 
-#ifndef MV_MVSB_CLIENT_H
-#define MV_MVSB_CLIENT_H
+#ifndef RMAP_SVC_SB_CLIENT_H
+#define RMAP_SVC_SB_CLIENT_H
 
 namespace RMAP
 {
@@ -420,4 +420,4 @@ namespace RMAP
       };
    }
 }
-#endif //MV_MVSB_CLIENT_H
+#endif //RMAP_SVC_SB_CLIENT_H

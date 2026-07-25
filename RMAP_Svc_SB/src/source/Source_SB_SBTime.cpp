@@ -1,6 +1,6 @@
 /*******************************************************************************************************************************
 **                                                                                                                            **
-**                                               MVSB_cpp : SB_SBTime.cpp                                                     **
+**                                               RMAP_SVC_SB : SB_SBTime.cpp                                                  **
 **                                                                                                                            **
 ********************************************************************************************************************************
 **                              Copyright 2014-2024 Metaversal Corporation. All rights reserved.                              **
@@ -63,7 +63,7 @@ SB_SBTIME::~SB_SBTIME ()
 
 SB_SBTIME::FACTORY* SB_SBTIME::factory ()
 {
-   return new FACTORY ("MVSB", "SBTime", MV_SERVICE_OBJECT_TIME, apAction);
+   return new FACTORY ("RMAP_Svc_SB", "SBTime", MV_SERVICE_OBJECT_TIME, apAction);
 }
 
 void SB_SBTIME::Tick (int uCode, TIME tmServer)

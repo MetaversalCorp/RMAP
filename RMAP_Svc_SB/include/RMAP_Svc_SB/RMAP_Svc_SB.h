@@ -359,4 +359,4 @@ namespace RMAP
 #include "Source.h"
 #include "ClassTypes.h"
 
-#endif //MV_MVSB_H
+#endif //RMAP_SVC_SB_H

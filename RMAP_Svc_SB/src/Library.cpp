@@ -1,6 +1,6 @@
 /*******************************************************************************************************************************
 **                                                                                                                            **
-**                                                   MVSB_cpp : DllMain.cpp                                                   **
+**                                                   RMAP_SVC_SB : Library.cpp                                                **
 **                                                                                                                            **
 ********************************************************************************************************************************
 **                              Copyright 2014-2024 Metaversal Corporation. All rights reserved.                              **
@@ -29,7 +29,7 @@ bool LibrarySVC_SB::Install (RMAP::CORE::PLUGIN* pPlugin)
    bool bResult = true;
    RMAP::CORE::APP* pCore = RMAP::CORE::APP::GetInstance ();
 
-   if (m_pRequire = pCore->Require ("MVMF", "", ""))
+   if (m_pRequire = pCore->Require ("RMAP", "", ""))
    {
       m_apFactory_Service.push_back (RMAP::SVC_SB::SERVICE::factory ());
 

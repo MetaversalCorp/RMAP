@@ -1,17 +1,17 @@
 /*******************************************************************************************************************************
 **                                                                                                                            **
-**                                                      MVSB_cpp : MVSB_ClassTypes.h                                          **
+**                                                      RMAP_Svc_SB : ClassTypes.h                                            **
 **                                                                                                                            **
 ********************************************************************************************************************************
 **                              Copyright 2014-2024 Metaversal Corporation. All rights reserved.                              **
 *******************************************************************************************************************************/
 
-#ifndef MV_MVSB_CLASSTYPES_H
-#define MV_MVSB_CLASSTYPES_H
+#ifndef RMAP_SVC_SB_CLASSTYPES_H
+#define RMAP_Svc_SB_CLASSTYPES_H
 
-namespace MV
+namespace RMAP
 {
-   namespace MVSB
+   namespace SVC_SB
    {
       #define SBO_CLASS_NULL                                     0
       #define SBO_CLASS_STATE                                    1
@@ -19,4 +19,4 @@ namespace MV
       #define SBO_CLASS_APPLIC                                  31
    }
 }
-#endif //MV_MVSB_CLASSTYPES_H
+#endif //RMAP_Svc_SB_CLASSTYPES_H
