@@ -90,7 +90,8 @@ else()
 
    ExternalProject_Add(nlohmann_json_fetch
       ${_json_git_args}
-      SOURCE_DIR        "${RMAP_JSON_DIR}"
+      SOURCE_DIR          "${RMAP_JSON_DIR}"
+      UPDATE_DISCONNECTED ON
       CONFIGURE_COMMAND ""
       BUILD_COMMAND     ""
       INSTALL_COMMAND   ""
@@ -128,7 +129,8 @@ else()
 
    ExternalProject_Add(asio_fetch
       ${_asio_git_args}
-      SOURCE_DIR        "${RMAP_ASIO_DIR}"
+      SOURCE_DIR          "${RMAP_ASIO_DIR}"
+      UPDATE_DISCONNECTED ON
       CONFIGURE_COMMAND ""
       BUILD_COMMAND     ""
       INSTALL_COMMAND   ""
@@ -168,7 +170,8 @@ else()
 
    ExternalProject_Add(websocketpp_fetch
       ${_websocketpp_git_args}
-      SOURCE_DIR        "${RMAP_WEBSOCKETPP_DIR}"
+      SOURCE_DIR          "${RMAP_WEBSOCKETPP_DIR}"
+      UPDATE_DISCONNECTED ON
       CONFIGURE_COMMAND ""
       BUILD_COMMAND     ""
       INSTALL_COMMAND   ""
@@ -233,6 +236,7 @@ if(NOT RMAP_USE_SYSTEM_BORINGSSL)
       ${_boringssl_git_args}
       SOURCE_DIR "${RMAP_BORINGSSL_DIR}"
       BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/boringssl/build"
+      UPDATE_DISCONNECTED ON
       CMAKE_ARGS
          -DCMAKE_INSTALL_PREFIX=${RMAP_BORINGSSL_PREFIX}
          -DBUILD_SHARED_LIBS=OFF
@@ -316,6 +320,7 @@ if(NOT RMAP_USE_SYSTEM_CURL)
       ${_curl_git_args}
       SOURCE_DIR "${RMAP_CURL_DIR}"
       BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/curl/build"
+      UPDATE_DISCONNECTED ON
       CMAKE_ARGS
          -DCMAKE_INSTALL_PREFIX=${RMAP_CURL_PREFIX}
          -DCMAKE_BUILD_TYPE=$<CONFIG>

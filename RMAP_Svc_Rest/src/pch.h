@@ -17,7 +17,7 @@
 #include <queue>
 #include <curl/curl.h>
 
-#include "LibraryMVRest.h"
+#include "Library.h"
 
 #endif //PCH_H
 

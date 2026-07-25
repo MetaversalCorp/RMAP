@@ -11,8 +11,8 @@ set(RMAP_Svc_Rest_FILES
    src/Client.cpp
    src/Control.cpp
    src/ICodec.cpp
-   src/LibraryMVRest.cpp
-   src/LibraryMVRest.h
+   src/Library.cpp
+   src/Library.h
    src/Service.cpp
    src/Source_Rest_Object.cpp
    src/Source_Rest_Session.cpp

@@ -222,7 +222,25 @@ gitignored, not committed), `add_dependencies(RMAP <name>_fetch)`, and adds the 
 include dir to `RMAP` as `$<BUILD_INTERFACE:...>` PUBLIC; when ON, `find_package(<name>
 <ver> CONFIG REQUIRED)` + `target_link_libraries(RMAP PUBLIC <name>::<name>)`. The
 `if(EXISTS "${dir}/.git")` guard in each block passes empty git args when the source is
-already present (skip re-download). Three **header-only** libs are wired this way:
+already present (skip re-download).
+
+**All five ExternalProjects set `UPDATE_DISCONNECTED ON`** (added 2026-07-24). Without it, a
+git-based ExternalProject re-runs its **update step on every build** ("Performing update
+step... Already at requested tag"); that update regenerates its stamp, and since the
+configure step depends on the update stamp, it **cascades** into re-configure -> re-build ->
+re-install every single build (all ending "Up-to-date", but noisy and slow, especially for
+the compiled curl/BoringSSL). `UPDATE_DISCONNECTED ON` skips the automatic update after the
+initial clone, breaking the cascade - verified: after one regenerate, a second
+`cmake --build build --target curl_build` is a pure no-op (just the MSBuild banner). Note
+the guard above does NOT fix this on its own: the buildsystem bakes in the git update step
+at the generate where the source was first cloned (`.git` didn't exist yet), so it keeps
+running until reconfigured; `UPDATE_DISCONNECTED` is the actual fix. To intentionally pull a
+newer upstream (bump a tag, refresh BoringSSL's moving `main`), run the generated
+`<name>-update` target (e.g. `cmake --build build --target curl_build-update`) or delete the
+dep's stamp dir and rebuild. TRADE-OFF for BoringSSL specifically: it tracks the moving
+`main` branch, so disconnecting freezes it at the currently-cloned commit until manually
+updated - accepted (better reproducibility); the four tag-pinned deps never needed updates
+anyway. Three **header-only** libs are wired this way:
 nlohmann_json, asio, websocketpp. All three include dirs are PUBLIC on `RMAP`, so the
 service OBJECT libraries see them transitively via
 `$<TARGET_PROPERTY:RMAP,INTERFACE_INCLUDE_DIRECTORIES>`. Two further libs, **BoringSSL
@@ -657,3 +675,14 @@ NOT restored.
   BoringSSL). NOTE: a full `RMAP.lib` build still fails only on the pre-existing SB/REST
   `MV::`/`MVRest` source migration (DavidSr-owned), unrelated to curl; and since RMAP is a
   static archive the PRIVATE curl link is only recorded, resolved at a downstream exe link.
+- 2026-07-24 (DavidSr): Fixed the every-build ExternalProject churn. In Visual Studio each
+  build re-ran curl's (and every git dep's) update->configure->build->install steps (all
+  "Up-to-date", but noisy/slow). Root cause: git ExternalProjects re-run the update step on
+  every build, which cascades via stamp deps into reconfigure/rebuild/reinstall. DavidSr
+  chose option 2 (fix all five). Added `UPDATE_DISCONNECTED ON` to all five
+  `ExternalProject_Add` calls (`nlohmann_json_fetch`, `asio_fetch`, `websocketpp_fetch`,
+  `boringssl_build`, `curl_build`). Regenerated (`cmake --preset vs2022`) - no re-clone;
+  verified a second `cmake --build build --target curl_build --config Release` (with no
+  intervening regenerate) is a pure no-op. To pull newer upstream now, run the generated
+  `<name>-update` target. BoringSSL trade-off noted (freezes at cloned `main` commit until
+  manual update) - accepted.
