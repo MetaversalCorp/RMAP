@@ -27,6 +27,9 @@ x64/
 # libcurl fetched + built from git at build time (not committed)
 /RMAP/third_party/curl/
 
+# socket.io-client-cpp fetched + built from git at build time (not committed)
+/RMAP/third_party/socketio/
+
 # IDE / editor
 *.user
 .vs/

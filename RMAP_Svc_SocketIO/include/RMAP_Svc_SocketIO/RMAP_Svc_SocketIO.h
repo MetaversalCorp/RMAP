@@ -5,13 +5,13 @@
 ********************************************************************************************************************************
 **                              Copyright 2014-2024 Metaversal Corporation. All rights reserved.                              **
 *******************************************************************************************************************************/
-#if 0
+
 #ifndef RMAP_SVC_IO_H
 #define RMAP_SVC_IO_H
 
-namespace MV
+namespace RMAP
 {
-   namespace MVIO
+   namespace SVC_SOCKETIO
    {
       class CLIENT;
       class SUBSCRIPTION
@@ -32,7 +32,7 @@ namespace MV
          Impl* m_pImpl;
       };
 
-      class SERVICE : public MVMF::SERVICE
+      class SERVICE : public RMAP::CORE::SERVICE
       {
       public:
          class NETSETTINGS
@@ -59,24 +59,24 @@ namespace MV
          NOTIFYPARAM;
 
       public:
-         class FACTORY : public MVMF::SERVICE::FACTORY
+         class FACTORY : public RMAP::CORE::SERVICE::FACTORY
          {
          public:
             FACTORY (std::string sID);
             virtual ~FACTORY ();
 
-            MVMF::SERVICE::IREFERENCE* Reference (std::string sConnect) override;
+            RMAP::CORE::SERVICE::IREFERENCE* Reference (std::string sConnect) override;
          };
 
       public:
-         class IREFERENCE : public MVMF::SERVICE::IREFERENCE
+         class IREFERENCE : public RMAP::CORE::SERVICE::IREFERENCE
          {
          public:
             IREFERENCE (std::string sID, std::string sConnect);
             virtual ~IREFERENCE ();
 
             std::string    Key () override;
-            MVMF::SERVICE* Create (MVMF::NAMESPACE* pNamespace) override;
+            RMAP::CORE::SERVICE* Create (RMAP::CORE::NAMESPACE* pNamespace) override;
 
             NETSETTINGS                NetSettings;
          };
@@ -84,7 +84,7 @@ namespace MV
       public:
          static FACTORY* factory ();
 
-         SERVICE (IREFERENCE* pReference, MVMF::NAMESPACE* pNamespace);
+         SERVICE (IREFERENCE* pReference, RMAP::CORE::NAMESPACE* pNamespace);
          ~SERVICE ();
 
          // ===== Public Properties ==================================================================================================
@@ -93,7 +93,7 @@ namespace MV
 
          // ===== Public Methods =====================================================================================================
 
-         MVMF::CLIENT* Client_Open (uint64_t twClientIx) override;
+         RMAP::CORE::CLIENT* Client_Open (uint64_t twClientIx) override;
          std::string GetSessionString () override;
 
          bool Connected (CLIENT* pClient);
@@ -157,7 +157,7 @@ namespace MV
 
          bool Connect (const std::string& sEndPoint, ICONTROL* pIControl, bool bVoluntary);
          bool Disconnect (ICONTROL* pIControl, bool bVoluntary, bool bDisconnected);
-         bool Send_Request (MV::MVMF::CLIENT::IACTION* pIAction);
+         bool Send_Request (RMAP::CORE::CLIENT::IACTION* pIAction);
 
       private:
          class Impl;
@@ -167,7 +167,7 @@ namespace MV
 
       typedef void (*fnActionConvert)(ordered_json& jRequest_Out, const ordered_json& jRequest_In);
 
-      class MV_MVIO_API CLIENT : public MVMF::MEM::IMEM, public MV::MVMF::CLIENT, public NET::INET
+      class CLIENT : public RMAP::CORE::MEM::IMEM, public RMAP::CORE::CLIENT, public NET::INET
       {
       public:
          enum eSTATE
@@ -205,13 +205,13 @@ namespace MV
          };
 
       public:
-         class MV_MVIO_API IREFERENCE : public MVMF::CLIENT::IREFERENCE
+         class IREFERENCE : public RMAP::CORE::CLIENT::IREFERENCE
          {
          public:
             IREFERENCE (uint64_t twClientIx);
             virtual ~IREFERENCE ();
 
-            MVMF::CLIENT* Create (MVMF::SERVICE* pService) override;
+            RMAP::CORE::CLIENT* Create (RMAP::CORE::SERVICE* pService) override;
 
          private:
             class Impl;
@@ -219,7 +219,7 @@ namespace MV
          };
 
       public:
-         class MV_MVIO_API ACTION : public MVMF::CLIENT::ACTION
+         class ACTION : public RMAP::CORE::CLIENT::ACTION
          {
          public:
             ACTION (std::string sAction, std::string sRequest, fnActionConvert fnConvert);
@@ -234,13 +234,13 @@ namespace MV
             Impl* m_pImpl;
          };
 
-         class MV_MVIO_API IACTION : public MVMF::CLIENT::IACTION
+         class IACTION : public RMAP::CORE::CLIENT::IACTION
          {
          public:
             IACTION (CLIENT* pClient, const ACTION* pAction);
             virtual ~IACTION ();
 
-            bool Send (MVMF::IRESPONSE* pResponse, int nType, intptr_t pParam);
+            bool Send (RMAP::CORE::IRESPONSE* pResponse, int nType, intptr_t pParam);
 
             std::string GetAction ();
             ordered_json& GetResponse ();
@@ -258,15 +258,15 @@ namespace MV
          };
 
       public:
-         CLIENT (IREFERENCE* pReference, MV::MVMF::SERVICE* pService);
+         CLIENT (IREFERENCE* pReference, RMAP::CORE::SERVICE* pService);
          virtual ~CLIENT ();
 
-         static MVMF::CLIENT::IREFERENCE* Reference (uint64_t twClientIx);
+         static RMAP::CORE::CLIENT::IREFERENCE* Reference (uint64_t twClientIx);
 
-         MVMF::SOURCE_SESSION::LOGIN* pLogin ();
+         RMAP::CORE::SOURCE_SESSION::LOGIN* pLogin ();
          bool   bLoggedIn ();
 
-         void   Progress (MV::MVMF::PROGRESS* pProgress);
+         void   Progress (RMAP::CORE::PROGRESS* pProgress);
 
          bool bNetConnected ();
 
@@ -274,7 +274,7 @@ namespace MV
 
          // =======================================================================================================
 
-         MV::MVMF::CLIENT::IACTION* Request (const MV::MVMF::CLIENT::ACTION* pAction) override;
+         RMAP::CORE::CLIENT::IACTION* Request (const RMAP::CORE::CLIENT::ACTION* pAction) override;
          bool     IsDisconnected () override;
          bool     IsConnected () override;
          bool     IsLoggedOut () override;
@@ -289,7 +289,7 @@ namespace MV
          bool Logout (void* pParams);
          uint32_t Object_Recover (ordered_json& jData);
 
-         MV::MVMF::MEM::MEM* pMem ();
+         RMAP::CORE::MEM::MEM* pMem ();
          NET* pNet ();
 
          void Recv_Register (std::string sAction, IRECV* pRecv);
@@ -306,18 +306,18 @@ namespace MV
 
          // ===== IMEM Methods ====================================================================================================
 
-         bool onUpdate (MV::MVMF::MEM::SOURCE* pObject, bool bDiscard, void* pParam) override;
-         bool onChange (MV::MVMF::MEM::SOURCE* pParent, MV::MVMF::MEM::SOURCE* pObject, MV::MVMF::MEM::SOURCE* pChild, void* pParam) override;
+         bool onUpdate (RMAP::CORE::MEM::SOURCE* pObject, bool bDiscard, void* pParam) override;
+         bool onChange (RMAP::CORE::MEM::SOURCE* pParent, RMAP::CORE::MEM::SOURCE* pObject, RMAP::CORE::MEM::SOURCE* pChild, void* pParam) override;
 
       private:
          class Impl;
          Impl* m_pImpl;
       };
 
-      class REFRESH : public MVMF::MEM::IMEM, public CLIENT::IRECV
+      class REFRESH : public RMAP::CORE::MEM::IMEM, public CLIENT::IRECV
       {
       public:
-         class IOCHANGE : public MVMF::MEM::CHANGE
+         class IOCHANGE : public RMAP::CORE::MEM::CHANGE
          {
          public:
             ordered_json          jChange;
@@ -329,8 +329,8 @@ namespace MV
 
          bool onRecv_Request (std::string sAction, ordered_json& jData) override;
 
-         bool onUpdate (MV::MVMF::MEM::SOURCE* pObject, bool bDiscard, void* pParam) override;
-         bool onChange (MV::MVMF::MEM::SOURCE* pParent, MV::MVMF::MEM::SOURCE* pObject, MV::MVMF::MEM::SOURCE* pChild, void* pParam) override;
+         bool onUpdate (RMAP::CORE::MEM::SOURCE* pObject, bool bDiscard, void* pParam) override;
+         bool onChange (RMAP::CORE::MEM::SOURCE* pParent, RMAP::CORE::MEM::SOURCE* pObject, RMAP::CORE::MEM::SOURCE* pChild, void* pParam) override;
 
       private:
          bool Event_Refresh (ordered_json& jResponse);
@@ -359,10 +359,10 @@ namespace MV
       **                                                 IO_OBJECT                                                                **
       *******************************************************************************************************************************/
 
-      class MV_MVIO_API IO_OBJECT : public MVMF::MEM::SOURCE
+      class IO_OBJECT : public RMAP::CORE::MEM::SOURCE
       {
       public:
-         class MV_MVIO_API OBJECTHEAD : public MVMF::MEM::OBJECTHEAD
+         class OBJECTHEAD : public RMAP::CORE::MEM::OBJECTHEAD
          {
          public:
             OBJECTHEAD ();
@@ -378,15 +378,15 @@ namespace MV
          };
 
       public:
-         class MV_MVIO_API FACTORY : public MVMF::MEM::SOURCE::FACTORY
+         class FACTORY : public RMAP::CORE::MEM::SOURCE::FACTORY
          {
          public:
-            FACTORY (std::string sID_Service, std::string sID_Model, int wClass, std::map<std::string, const MVMF::CLIENT::ACTION*>& apAction, bool bIndependent);
+            FACTORY (std::string sID_Service, std::string sID_Model, int wClass, std::map<std::string, const RMAP::CORE::CLIENT::ACTION*>& apAction, bool bIndependent);
             virtual ~FACTORY ();
          };
 
       public:
-         IO_OBJECT (MVMF::MEM::SOURCE::REFERENCE* pReference, MV::MVMF::CLIENT* pClient);
+         IO_OBJECT (RMAP::CORE::MEM::SOURCE::REFERENCE* pReference, RMAP::CORE::CLIENT* pClient);
          virtual ~IO_OBJECT ();
 
          // ===== Public Properties ==================================================================================================
@@ -400,7 +400,7 @@ namespace MV
          void SetData (ordered_json& jData);
          ordered_json& GetData ();
 
-         virtual void Read (ordered_json& jSrc, MVMF::MODEL* pModel) = 0;
+         virtual void Read (ordered_json& jSrc, RMAP::CORE::MODEL* pModel) = 0;
 
          // ===== Source Methods =====================================================================================================
 
@@ -408,18 +408,18 @@ namespace MV
          void Full () override;
          void Recovering () override;
          void Recovered () override;
-         void Inserted (MVMF::MEM::SOURCE* pObject, MVMF::MEM::SOURCE* pChild, MVMF::MEM::CHANGE* pChange) override;
-         void Deleting (MVMF::MEM::SOURCE* pObject, MVMF::MEM::SOURCE* pChild, MVMF::MEM::CHANGE* pChange) override;
-         void Updating (MVMF::MEM::SOURCE* pObject, MVMF::MEM::SOURCE* pChild) override;
-         void Updated  (MVMF::MEM::SOURCE* pObject, MVMF::MEM::SOURCE* pChild) override;
-         void Changing (MVMF::MEM::SOURCE* pObject, MVMF::MEM::SOURCE* pChild, MVMF::MEM::CHANGE* pChange) override;
-         void Changed  (MVMF::MEM::SOURCE* pObject, MVMF::MEM::SOURCE* pChild, MVMF::MEM::CHANGE* pChange) override;
+         void Inserted (RMAP::CORE::MEM::SOURCE* pObject, RMAP::CORE::MEM::SOURCE* pChild, RMAP::CORE::MEM::CHANGE* pChange) override;
+         void Deleting (RMAP::CORE::MEM::SOURCE* pObject, RMAP::CORE::MEM::SOURCE* pChild, RMAP::CORE::MEM::CHANGE* pChange) override;
+         void Updating (RMAP::CORE::MEM::SOURCE* pObject, RMAP::CORE::MEM::SOURCE* pChild) override;
+         void Updated  (RMAP::CORE::MEM::SOURCE* pObject, RMAP::CORE::MEM::SOURCE* pChild) override;
+         void Changing (RMAP::CORE::MEM::SOURCE* pObject, RMAP::CORE::MEM::SOURCE* pChild, RMAP::CORE::MEM::CHANGE* pChange) override;
+         void Changed  (RMAP::CORE::MEM::SOURCE* pObject, RMAP::CORE::MEM::SOURCE* pChild, RMAP::CORE::MEM::CHANGE* pChange) override;
 
          bool Attach () override;
          bool Detach () override;
 
       public:
-         void Map_Read (MVMF::MEM::MODEL* pModel);
+         void Map_Read (RMAP::CORE::MEM::MODEL* pModel);
          void Map_Write (void* pvData, uint16_t wFlags, bool bDiscard);
 
       private:
@@ -427,23 +427,23 @@ namespace MV
          Impl* m_pImpl;
       };
 
-      class MV_MVIO_API IO_SESSION : public MVMF::SOURCE_SESSION
+      class IO_SESSION : public RMAP::CORE::SOURCE_SESSION
       {
       public:
-         class MV_MVIO_API FACTORY : public MVMF::SOURCE_SESSION::FACTORY
+         class FACTORY : public RMAP::CORE::SOURCE_SESSION::FACTORY
          {
          public:
-            FACTORY (std::string sID_Service, std::string sID_Model, std::map<std::string, const MVMF::CLIENT::ACTION*>& apAction);
+            FACTORY (std::string sID_Service, std::string sID_Model, std::map<std::string, const RMAP::CORE::CLIENT::ACTION*>& apAction);
             virtual ~FACTORY ();
          };
 
       public:
-         IO_SESSION (SOURCE::REFERENCE* pReference, MVMF::CLIENT* pClient);
+         IO_SESSION (SOURCE::REFERENCE* pReference, RMAP::CORE::CLIENT* pClient);
          virtual ~IO_SESSION ();
 
-         void initialize (MVMF::MODEL_SESSION* pModel);
+         void initialize (RMAP::CORE::MODEL_SESSION* pModel);
 
-         void Progress (MVMF::PROGRESS* pProgress) override;
+         void Progress (RMAP::CORE::PROGRESS* pProgress) override;
 
          // ===== Client Methods =====================================================================================================
 
@@ -458,7 +458,7 @@ namespace MV
 
          virtual bool Attempt (int nReadyState) = 0;
 
-         MVMF::SOURCE_SESSION::LOGIN* pLogin () override;
+         RMAP::CORE::SOURCE_SESSION::LOGIN* pLogin () override;
          bool         Connect () override;
          bool         Disconnect (bool bVoluntary) override;
 
@@ -494,14 +494,14 @@ namespace MV
          };
 
       public:
-         class PROGRESS : public MVMF::PROGRESS
+         class PROGRESS : public RMAP::CORE::PROGRESS
          {
          public:
             int                                 nProgress;
             bool                                bResult;
             bool                                bVoluntary;
             bool                                bDisconnected;
-            MVMF::SOURCE_SESSION::LOGIN*         pLogin;
+            RMAP::CORE::SOURCE_SESSION::LOGIN*         pLogin;
 
             std::string                         acToken64U_Device;
             uint32_t                            dwResult;
@@ -512,15 +512,15 @@ namespace MV
          ~CONTROL ();
 
          bool bLoggedIn ();
-         MVMF::SOURCE_SESSION::LOGIN* pLogin ();
+         RMAP::CORE::SOURCE_SESSION::LOGIN* pLogin ();
 
          std::string& sEndPoint ();
 
          bool SafeKill ();
          bool ClearError ();
 
-         bool Login (MVMF::SOURCE* pSource, void* pvParams);
-         bool Logout (MVMF::SOURCE* pSource, void* pvParams);
+         bool Login (RMAP::CORE::SOURCE* pSource, void* pvParams);
+         bool Logout (RMAP::CORE::SOURCE* pSource, void* pvParams);
 
          bool SocketConnect ();
          bool SocketReconnect ();
@@ -532,7 +532,7 @@ namespace MV
       private:
          bool Logout_Request (bool bVoluntary, bool bDisconnected);
          void Logout_Response (CLIENT::IACTION* pIAction, intptr_t pVD);
-         void Logout_Exit (MV::MVMF::CLIENT::IACTION* pIAction, bool bVoluntary, bool bDisconnected);
+         void Logout_Exit (RMAP::CORE::CLIENT::IACTION* pIAction, bool bVoluntary, bool bDisconnected);
 
       private:
          class Impl;
@@ -545,34 +545,34 @@ namespace MV
          class FACTORY : public IO_SESSION::FACTORY
          {
          public:
-            FACTORY (std::string sID_Service, std::string sID_Model, std::map<std::string, const MVMF::CLIENT::ACTION*>& apAction);
+            FACTORY (std::string sID_Service, std::string sID_Model, std::map<std::string, const RMAP::CORE::CLIENT::ACTION*>& apAction);
             virtual ~FACTORY ();
 
-            MV::MVMF::SOURCE* Create (MV::MVMF::CLIENT* pClient) override;
+            RMAP::CORE::SOURCE* Create (RMAP::CORE::CLIENT* pClient) override;
          };
 
       public:
          static void init ();
          static FACTORY* factory ();
 
-         IO_SESSION_NULL (SOURCE::REFERENCE* pReference, MVMF::CLIENT* pClient);
+         IO_SESSION_NULL (SOURCE::REFERENCE* pReference, RMAP::CORE::CLIENT* pClient);
          virtual ~IO_SESSION_NULL ();
 
-         static std::map<std::string, const MV::MVMF::CLIENT::ACTION*> aAction;
+         static std::map<std::string, const RMAP::CORE::CLIENT::ACTION*> aAction;
 
       public:
-         MVMF::SOURCE_SESSION::LOGIN* Login_Create () override;
-         MVMF::SOURCE_SESSION::LOGIN* Login_Destroy (MVMF::SOURCE_SESSION::LOGIN* pLogin) override;
-         void                        Progress (MVMF::PROGRESS* pProgress) override;
-         MVMF::CLIENT::IACTION*      Login_Request (void* pParams, MVMF::SOURCE_SESSION::LOGIN* pLogin) override;
-         bool                        Login_Response (void* pParams, MVMF::SOURCE_SESSION::LOGIN* pLogin, MVMF::CLIENT::IACTION* pIAction, bool bVoluntary) override;
-         MVMF::CLIENT::IACTION*      Logout_Request (void* pParams, MVMF::SOURCE_SESSION::LOGIN* pLogin) override;
-         bool                        Logout_Response (void* pParams, MVMF::SOURCE_SESSION::LOGIN* pLogin, MVMF::CLIENT::IACTION* pIAction, bool bVoluntary, bool bDisconnected) override;
+         RMAP::CORE::SOURCE_SESSION::LOGIN* Login_Create () override;
+         RMAP::CORE::SOURCE_SESSION::LOGIN* Login_Destroy (RMAP::CORE::SOURCE_SESSION::LOGIN* pLogin) override;
+         void                        Progress (RMAP::CORE::PROGRESS* pProgress) override;
+         RMAP::CORE::CLIENT::IACTION*      Login_Request (void* pParams, RMAP::CORE::SOURCE_SESSION::LOGIN* pLogin) override;
+         bool                        Login_Response (void* pParams, RMAP::CORE::SOURCE_SESSION::LOGIN* pLogin, RMAP::CORE::CLIENT::IACTION* pIAction, bool bVoluntary) override;
+         RMAP::CORE::CLIENT::IACTION*      Logout_Request (void* pParams, RMAP::CORE::SOURCE_SESSION::LOGIN* pLogin) override;
+         bool                        Logout_Response (void* pParams, RMAP::CORE::SOURCE_SESSION::LOGIN* pLogin, RMAP::CORE::CLIENT::IACTION* pIAction, bool bVoluntary, bool bDisconnected) override;
 
       public:
          bool Attempt (int nReadyState) override;
 
-         MV::MVMF::ISOURCE_SESSION* GetSessionInterface ();
+         RMAP::CORE::ISOURCE_SESSION* GetSessionInterface ();
       };
 
       /*******************************************************************************************************************************
@@ -584,4 +584,3 @@ namespace MV
    }
 }
 #endif //RMAP_SVC_IO_H
-#endif

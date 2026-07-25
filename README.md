@@ -33,6 +33,7 @@ RMAP/
       websocketpp/           websocketpp (header-only)
       boringssl/             BoringSSL (compiled from source into static libcrypto/libssl)
       curl/                  libcurl (compiled from source into a static libcurl)
+      socketio/              socket.io-client-cpp (compiled from source into static sioclient_tls)
   RMAP_Svc_SB/             SB service module
     CMakeLists.txt         Service project (OBJECT library folded into RMAP.lib)
     include/RMAP_Svc_SB/   Public header
@@ -67,13 +68,17 @@ generated solution.
 | **NASM** | building BoringSSL on Windows (x86/x64) | `winget install NASM.NASM`. Winget installs it under `%LOCALAPPDATA%\bin\NASM`, which is not on `PATH` by default — the build looks there and in `%ProgramFiles%\NASM` automatically. Not needed on Apple Silicon. |
 
 The three header-only dependencies (nlohmann_json, asio, websocketpp) require no
-extra tools. Two dependencies are compiled from source: BoringSSL and libcurl.
-Only BoringSSL adds toolchain requirements (Go, plus NASM on Windows) — libcurl
-builds with just the C/C++ compiler and, on Windows, uses the OS's Schannel TLS
-so it needs no BoringSSL either. Perl is **not** required (modern BoringSSL uses
-Go for its assembly generation). To skip BoringSSL's toolchain entirely, provide
-an external copy via `RMAP_USE_SYSTEM_BORINGSSL=ON` (see Options); libcurl can
-likewise be supplied externally with `RMAP_USE_SYSTEM_CURL=ON`.
+extra tools. Three dependencies are compiled from source: BoringSSL, libcurl, and
+socket.io-client-cpp. Only BoringSSL adds toolchain requirements (Go, plus NASM on
+Windows) — libcurl and socket.io-client-cpp build with just the C/C++ compiler
+(socket.io pulls its own git submodules at fetch time). libcurl on Windows uses
+the OS's Schannel TLS so it needs no BoringSSL; socket.io-client-cpp's TLS path
+has no Schannel backend, so it uses BoringSSL on every platform. Perl is **not**
+required (modern BoringSSL uses Go for its assembly generation). To skip
+BoringSSL's toolchain entirely, provide an external copy via
+`RMAP_USE_SYSTEM_BORINGSSL=ON` (see Options); libcurl and socket.io-client-cpp can
+likewise be supplied externally with `RMAP_USE_SYSTEM_CURL=ON` /
+`RMAP_USE_SYSTEM_SIOCLIENT=ON`.
 
 ### Visual Studio (Windows)
 
@@ -122,13 +127,14 @@ cmake --preset vs2022 -DRMAP_BUILD_SVC_REST=OFF
 | `RMAP_USE_SYSTEM_WEBSOCKETPP`| `OFF`   | `ON` uses an external `websocketpp` via `find_package` instead of the git-fetched copy.          |
 | `RMAP_USE_SYSTEM_BORINGSSL`  | `OFF`   | `ON` uses an external BoringSSL instead of building it from source (skips the Go/NASM toolchain). |
 | `RMAP_USE_SYSTEM_CURL`       | `OFF`   | `ON` uses an external libcurl instead of building it from source.                                |
+| `RMAP_USE_SYSTEM_SIOCLIENT`  | `OFF`   | `ON` uses an external socket.io-client-cpp instead of building it from source.                    |
 
 ## Dependencies
 
 All dependencies are pulled from git at build time into `RMAP/third_party/` (not
 committed). The three header-only libraries just add an include directory;
-BoringSSL is compiled from source. Each has a `RMAP_USE_SYSTEM_*` option to
-consume an external copy instead (see Options).
+BoringSSL, libcurl, and socket.io-client-cpp are compiled from source. Each has a
+`RMAP_USE_SYSTEM_*` option to consume an external copy instead (see Options).
 
 - [nlohmann_json](https://github.com/nlohmann/json) 3.11.3 — header-only; used in
   the core's public API (`RMAP.h` exposes `nlohmann::ordered_json`). Fetched into
@@ -164,6 +170,29 @@ consume an external copy instead (see Options).
   that includes `<curl/curl.h>`. Because `RMAP.lib` is a static archive, a final
   executable that links RMAP must also link libcurl (see below).
   `RMAP_USE_SYSTEM_CURL=ON` uses an external copy instead.
+- [socket.io-client-cpp](https://github.com/socketio/socket.io-client-cpp) —
+  **compiled from source**, not header-only; used by the SocketIO service module
+  (`Net.cpp` includes `<sio_client.h>`). Pinned to a specific **`master` commit**
+  (`3b7be7e`, 2025-08-28) rather than the newest release tag `3.1.0`: that tag
+  hard-caps its TLS target at C++11 (`set_property(... CXX_STANDARD 11)`), but
+  modern BoringSSL's public C++ headers (`openssl/span.h`) require C++17; `master`
+  relaxed that to a `cxx_std_11` *minimum*, so we raise the build to C++17
+  (`CMAKE_CXX_STANDARD=17`) and compile against BoringSSL without patching. Built
+  into a static **`sioclient_tls`** (its TLS variant, `-DSIO_TLS`) and fetched into
+  `RMAP/third_party/socketio/`; it pulls its **own** git submodules
+  (`lib/websocketpp`, `lib/rapidjson`, `lib/asio`), which are internal to its build
+  and separate from RMAP's asio/websocketpp. Its TLS backend is **BoringSSL** on
+  every platform (it has no Schannel path), wired via `find_package(OpenSSL)`
+  pointed at the BoringSSL built above. On MSVC the build injects
+  `WIN32_LEAN_AND_MEAN`/`NOCRYPT` (avoid the `<wincrypt.h>` `X509_NAME`/`PKCS7`
+  macro collision with BoringSSL types), `NOMINMAX` (so `<windows.h>`'s `max()`
+  macro doesn't mangle `std::numeric_limits<size_t>::max()` in BoringSSL's
+  `span.h`), and `/EHsc /permissive- /Zc:__cplusplus`; its own tests/Catch2 are
+  disabled (`BUILD_TESTING=OFF`). Its public `sio_*.h` headers are pimpl'd, so the
+  SocketIO module only needs the sio include dir (no asio/websocketpp exposure).
+  Linked **PRIVATE**; a final executable that links RMAP must also link
+  `sioclient_tls` (see below). `RMAP_USE_SYSTEM_SIOCLIENT=ON` uses an external copy
+  instead.
 
 ## Using RMAP from CMake
 
@@ -180,16 +209,19 @@ If RMAP was built with `RMAP_USE_SYSTEM_JSON=ON`, its package config pulls in
 
 ### Linking the compiled dependencies
 
-BoringSSL and libcurl are linked **PRIVATE** into RMAP and are not re-exported.
-Because `RMAP.lib` is a *static* archive, its private dependencies are not
-resolved until the final link of an executable (or shared library). A downstream
-target that links `RMAP::RMAP` must therefore also link:
+BoringSSL, libcurl, and socket.io-client-cpp are linked **PRIVATE** into RMAP and
+are not re-exported. Because `RMAP.lib` is a *static* archive, its private
+dependencies are not resolved until the final link of an executable (or shared
+library). A downstream target that links `RMAP::RMAP` must therefore also link:
 
 - BoringSSL's `crypto`/`ssl`, plus its system libs (`ws2_32`/`crypt32` on Windows;
   `pthread`/`dl` on Linux).
 - The static libcurl, plus its system libs. On Windows that is
   `ws2_32 wldap32 crypt32 normaliz` (curl uses Schannel there, so it does not pull
   BoringSSL); on Linux/macOS libcurl links the same BoringSSL noted above.
+- The static `sioclient_tls`. Its TLS is backed by BoringSSL (already listed
+  above) on every platform, and it uses the same Windows socket libs
+  (`ws2_32`/`crypt32`).
 
 asio and websocketpp are header-only and add no link requirement.
 

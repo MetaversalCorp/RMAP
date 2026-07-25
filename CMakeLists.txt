@@ -29,6 +29,7 @@ option(RMAP_USE_SYSTEM_ASIO "Use an external asio (find_package) instead of the 
 option(RMAP_USE_SYSTEM_WEBSOCKETPP "Use an external websocketpp (find_package) instead of the git-fetched copy" OFF)
 option(RMAP_USE_SYSTEM_BORINGSSL "Use an external BoringSSL (find_package) instead of the git-built copy" OFF)
 option(RMAP_USE_SYSTEM_CURL "Use an external libcurl (find_package) instead of the git-built copy" OFF)
+option(RMAP_USE_SYSTEM_SIOCLIENT "Use an external socket.io-client-cpp instead of the git-built copy" OFF)
 
 # ---------------------------------------------------------------------------
 # Modules. Each module is its own Visual Studio project:
@@ -361,6 +362,103 @@ if(NOT RMAP_USE_SYSTEM_CURL)
 endif()
 
 # ---------------------------------------------------------------------------
+# socket.io-client-cpp / "sioclient" (COMPILED - not header-only). Pinned to a
+# specific master commit (3b7be7e, 2025-08-28) rather than the 3.1.0 tag: that
+# tag HARD-CAPS its TLS target at CXX_STANDARD 11 (set_property), but modern
+# BoringSSL's public C++ headers (openssl/span.h) require C++17. master relaxed
+# that line to a cxx_std_11 *minimum* (target_compile_features), so we can raise
+# the whole build to C++17 (CMAKE_CXX_STANDARD=17) and compile against BoringSSL
+# without patching. Repo https://github.com/socketio/socket.io-client-cpp.git.
+# Used by RMAP_Svc_SocketIO (Net.cpp includes <sio_client.h>). Built from source
+# into a static lib via its own CMake. It pulls its OWN git submodules
+# (lib/websocketpp, lib/rapidjson, lib/asio) - internal to sioclient's build and
+# separate from RMAP's asio/websocketpp; its public sio_*.h headers are pimpl'd,
+# so RMAP_Svc_SocketIO only needs the sio include dir. We build the TLS variant
+# (sioclient_tls, -DSIO_TLS) by pointing its find_package(OpenSSL) at the
+# BoringSSL RMAP already builds - socket.io's TLS path needs OpenSSL on every
+# platform (unlike curl, it has no Schannel backend). On MSVC we inject
+# WIN32_LEAN_AND_MEAN/NOCRYPT so <wincrypt.h> macros (X509_NAME, PKCS7, ...) do
+# not collide with BoringSSL's types (same guard the SB module uses). A fixed
+# commit is pinned (not the moving master ref) for reproducibility, so
+# GIT_SHALLOW is OFF (arbitrary SHAs are not fetchable via a shallow clone).
+# Linked PRIVATE (internal use; kept out of RMAP's exported interface).
+# ---------------------------------------------------------------------------
+
+if(NOT RMAP_USE_SYSTEM_SIOCLIENT)
+   include(ExternalProject)
+
+   set(RMAP_SIOCLIENT_DIR    "${CMAKE_CURRENT_SOURCE_DIR}/RMAP/third_party/socketio")
+   set(RMAP_SIOCLIENT_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/socketio/$<CONFIG>")
+   set(RMAP_SIOCLIENT_LIB
+      "${RMAP_SIOCLIENT_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}sioclient_tls${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
+   if(EXISTS "${RMAP_SIOCLIENT_DIR}/.git")
+      set(_sioclient_git_args)
+   else()
+      set(_sioclient_git_args
+         GIT_REPOSITORY https://github.com/socketio/socket.io-client-cpp.git
+         GIT_TAG        3b7be7e4173b5bdeed393966e3274f65d513a280
+         GIT_SUBMODULES "lib/websocketpp" "lib/rapidjson" "lib/asio")
+   endif()
+
+   # MSVC flags for socket.io's own build. Because CMAKE_CXX_FLAGS here REPLACES
+   # CMake's MSVC defaults, we must re-state them (/DWIN32 /D_WINDOWS /EHsc):
+   #  - /EHsc            : socket.io uses C++ exceptions (else warning C4530).
+   #  - /DWIN32_LEAN_AND_MEAN /DNOCRYPT : keep <wincrypt.h> out so its
+   #    X509_NAME/PKCS7/... macros do not collide with BoringSSL's types.
+   #  - /DNOMINMAX       : stop <windows.h> defining min()/max() macros, which
+   #    otherwise mangle `std::numeric_limits<size_t>::max()` in BoringSSL's
+   #    span.h (the "dynamic_extent did not evaluate to a constant" error).
+   #  - /permissive- /Zc:__cplusplus : conformance mode for BoringSSL's C++
+   #    headers.
+   set(_sioclient_cxx_flags "")
+   if(MSVC)
+      set(_sioclient_cxx_flags "/DWIN32 /D_WINDOWS /EHsc /permissive- /Zc:__cplusplus /DWIN32_LEAN_AND_MEAN /DNOMINMAX /DNOCRYPT")
+   endif()
+
+   ExternalProject_Add(sioclient_build
+      ${_sioclient_git_args}
+      SOURCE_DIR "${RMAP_SIOCLIENT_DIR}"
+      BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/socketio/build"
+      UPDATE_DISCONNECTED ON
+      CMAKE_ARGS
+         -DCMAKE_INSTALL_PREFIX=${RMAP_SIOCLIENT_PREFIX}
+         -DCMAKE_BUILD_TYPE=$<CONFIG>
+         -DCMAKE_CXX_STANDARD=17
+         -DCMAKE_CXX_STANDARD_REQUIRED=ON
+         "-DCMAKE_CXX_FLAGS=${_sioclient_cxx_flags}"
+         -DBUILD_SHARED_LIBS=OFF
+         -DBUILD_UNIT_TESTS=OFF
+         -DBUILD_TESTING=OFF
+         -DUSE_SUBMODULES=ON
+         -DOPENSSL_ROOT_DIR=${RMAP_BORINGSSL_PREFIX}
+         -DOPENSSL_USE_STATIC_LIBS=TRUE
+         -DOPENSSL_INCLUDE_DIR=${RMAP_BORINGSSL_PREFIX}/include
+         -DOPENSSL_CRYPTO_LIBRARY=${RMAP_BORINGSSL_CRYPTO_LIB}
+         -DOPENSSL_SSL_LIBRARY=${RMAP_BORINGSSL_SSL_LIB}
+      BUILD_COMMAND   ${CMAKE_COMMAND} --build   <BINARY_DIR> --config $<CONFIG>
+      INSTALL_COMMAND ${CMAKE_COMMAND} --install <BINARY_DIR> --config $<CONFIG>
+      BUILD_BYPRODUCTS "${RMAP_SIOCLIENT_LIB}")
+
+   # sioclient_tls needs BoringSSL's headers/libs at configure/link time.
+   if(TARGET boringssl_build)
+      add_dependencies(sioclient_build boringssl_build)
+   endif()
+
+   add_dependencies(RMAP sioclient_build)
+
+   # Build-only PUBLIC include (flat: sio_client.h etc.) so RMAP_Svc_SocketIO can
+   # compile against <sio_client.h> without adding anything to the export set.
+   target_include_directories(RMAP PUBLIC
+      $<BUILD_INTERFACE:${RMAP_SIOCLIENT_PREFIX}/include>)
+
+   # PRIVATE link keeps the static lib out of RMAP's export set. sioclient_tls
+   # pulls in BoringSSL (already linked above via the BoringSSL block) and the
+   # Windows socket libs (ws2_32/crypt32, also already linked there).
+   target_link_libraries(RMAP PRIVATE "${RMAP_SIOCLIENT_LIB}")
+endif()
+
+# ---------------------------------------------------------------------------
 # Fetched third-party headers are pulled at build time by ExternalProject and
 # consumed transitively (via RMAP's include dirs) by the service OBJECT
 # libraries, which compile BEFORE RMAP (their objects fold into it). Only RMAP
@@ -371,7 +469,7 @@ endif()
 
 foreach(_svc RMAP_Svc_SB RMAP_Svc_Rest RMAP_Svc_SocketIO)
    if(TARGET ${_svc})
-      foreach(_dep nlohmann_json_fetch asio_fetch websocketpp_fetch boringssl_build curl_build)
+      foreach(_dep nlohmann_json_fetch asio_fetch websocketpp_fetch boringssl_build curl_build sioclient_build)
          if(TARGET ${_dep})
             add_dependencies(${_svc} ${_dep})
          endif()

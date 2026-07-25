@@ -8,7 +8,20 @@
 
 set(RMAP_Svc_SocketIO_FILES
    include/RMAP_Svc_SocketIO/RMAP_Svc_SocketIO.h
-   src/RMAP_Svc_SocketIO.cpp)
+   src/Client.cpp
+   src/Control.cpp
+   src/Library.cpp
+   src/Library.h
+   src/Net.cpp
+   src/Recover.cpp
+   src/Refresh.cpp
+   src/Service.cpp
+   src/Source_IO_Object.cpp
+   src/Source_IO_Session.cpp
+   src/Source_IO_Session_Null.cpp
+   src/Subscription.cpp
+   src/pch.cpp
+   src/pch.h)
 
 add_library(RMAP_Svc_SocketIO OBJECT ${RMAP_Svc_SocketIO_FILES})
 
@@ -18,6 +31,8 @@ target_include_directories(RMAP_Svc_SocketIO
    PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/include/RMAP_Svc_SocketIO
+      ${CMAKE_CURRENT_SOURCE_DIR}/src
       $<TARGET_PROPERTY:RMAP,INTERFACE_INCLUDE_DIRECTORIES>)
 
 target_compile_definitions(RMAP_Svc_SocketIO PRIVATE
@@ -27,5 +42,7 @@ if(MSVC)
    target_compile_definitions(RMAP_Svc_SocketIO PRIVATE UNICODE _UNICODE _LIB)
    target_compile_options(RMAP_Svc_SocketIO PRIVATE /permissive- /sdl /W3)
 endif()
+
+target_precompile_headers(RMAP_Svc_SocketIO PRIVATE src/pch.h)
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${RMAP_Svc_SocketIO_FILES})

@@ -33,8 +33,9 @@ source** (see inventory). **`RMAP_Svc_SB` now also contains real source** (added
 DavidSr this session - `base/`, `client/`, `model/`, `source/` subtrees plus `src` root
 files and a `pch` pair); it is no longer a placeholder. **`RMAP_Svc_Rest` now also
 contains real source** (added by DavidSr in this 2026-07-24 session - a flat `src/` tree
-plus a `pch` pair; no subfolders yet). `RMAP_Svc_SocketIO` is the only remaining one-line
-placeholder (a `Svc_SocketIO_GetName()` accessor) awaiting real code.
+plus a `pch` pair; no subfolders yet). **`RMAP_Svc_SocketIO` now also contains real
+source** (added by DavidSr in this 2026-07-24 session - a flat `src/` tree plus a `pch`
+pair). None of the four modules is a placeholder any more.
 
 ### Legacy naming - MVMF / MVSB are gone (replaced by RMAP / RMAP_Svc_SB)
 
@@ -63,10 +64,14 @@ Verified building on MSVC. **`RMAP_Svc_SB` now has real source and PCH enabled**
 module does not yet fully compile because DavidSr's source migration off the `MVMF`/`MVSB`/
 `MV::`/`SB_*` names is still in progress (see below). **`RMAP_Svc_Rest` also now has real
 source and PCH enabled** (CMake fully working) but has the same pending MV::-era migration
-(its `pch.h`/`LibraryMVRest.*` still use legacy `MVMF`/`MVRest` names). `RMAP_Svc_SocketIO`
-remains a placeholder. Also this session: added libcurl as a fifth third-party lib
-(compiled, TLS via Schannel on Windows / BoringSSL elsewhere) and renamed three SB public
-headers (`MVSB_*` -> `ClassTypes.h`/`Client.h`/`Source.h`).
+(its `pch.h`/`LibraryMVRest.*` still use legacy `MVMF`/`MVRest` names). **`RMAP_Svc_SocketIO`
+also now has real source and PCH enabled** (CMake fully working, plus a new compiled
+third-party lib - see below) but has the same pending MV::-era migration (its `pch.h` still
+includes `<MVMF.h>`/`<MVIO.h>`/`"LibraryMVIO.h"`). Also this session: added libcurl as a
+fifth third-party lib (compiled, TLS via Schannel on Windows / BoringSSL elsewhere), renamed
+three SB public headers (`MVSB_*` -> `ClassTypes.h`/`Client.h`/`Source.h`), and added
+**socket.io-client-cpp** as a sixth third-party lib (compiled; TLS `sioclient_tls` backed by
+BoringSSL; BUILD-VERIFIED that the lib compiles).
 
 Everything committed on disk was clean before the CMake restructure. Git history is two
 commits, both literally titled "Initial commit" / "Initial Commit" - `9434f77`
@@ -86,7 +91,7 @@ C:\Dev\OMB\RMAP\
                                  dependency loop, install/export
   CMakePresets.json              "vs2022" configure preset + vs2022-debug/-release build presets
   cmake\RMAPConfig.cmake.in      find_package(RMAP) package config template
-  .gitignore                     ignores build output + CMake artifacts + third_party/{json,asio,websocketpp,boringssl,curl}
+  .gitignore                     ignores build output + CMake artifacts + third_party/{json,asio,websocketpp,boringssl,curl,socketio}
   LICENSE, README.md
   RMAP\                          core module (always built) -> the RMAP.lib STATIC target
     CMakeLists.txt               core project: RMAP_FILES list, STATIC lib, PCH, source_group
@@ -109,6 +114,7 @@ C:\Dev\OMB\RMAP\
        websocketpp\ websocketpp (header-only)
        boringssl\   BoringSSL (compiled -> static libcrypto/libssl)
        curl\        libcurl (compiled -> static libcurl)
+       socketio\    socket.io-client-cpp (compiled -> static sioclient_tls; pulls own submodules)
   RMAP_Svc_SB\                   NO LONGER A PLACEHOLDER - real source added this session
     CMakeLists.txt               service project: OBJECT lib, full RMAP_Svc_SB_FILES list,
                                  PRIVATE include dirs (include/RMAP_Svc_SB + src +
@@ -142,7 +148,17 @@ C:\Dev\OMB\RMAP\
                  deliberately left unchanged; pch.h STILL includes legacy <MVMF.h>/<MVRest.h>/
                  "LibraryMVRest.h" and Library.* still uses "MVRest" header comments - same
                  MV::-era migration pending as SB, DavidSr-owned)
-  RMAP_Svc_SocketIO\             PLACEHOLDER (same structure) declares RMAP::Svc_SocketIO_GetName()
+  RMAP_Svc_SocketIO\             NO LONGER A PLACEHOLDER - real source added this session
+    include\RMAP_Svc_SocketIO\RMAP_Svc_SocketIO.h  public header, declares RMAP::Svc_SocketIO_GetName()
+    src\                         flat implementation tree (no subfolders) + pch:
+       (root)   Client.cpp Control.cpp Library.cpp/.h Net.cpp Recover.cpp Refresh.cpp
+                Service.cpp Source_IO_Object.cpp Source_IO_Session.cpp
+                Source_IO_Session_Null.cpp Subscription.cpp pch.cpp pch.h
+                (old src/RMAP_Svc_SocketIO.cpp placeholder removed from the file list;
+                 Net.cpp includes <sio_client.h> and uses sio::client/message/socket - the
+                 socket.io-client-cpp dependency added this session; pch.h STILL includes
+                 legacy <MVMF.h>/<MVIO.h>/"LibraryMVIO.h" and uses the MV::MVIO namespace -
+                 same MV::-era migration pending as SB/REST, DavidSr-owned)
   .cursor\rules\project.mdc      this file
 ```
 
@@ -205,8 +221,8 @@ Fix (applied to `RMAP_Svc_SB`, mirroring core): add
 PRIVATE include dirs (before the core `$<TARGET_PROPERTY>` entry). The same self include
 dirs were added to `RMAP_Svc_Rest` this session when it got real source + PCH (even though
 its `src/` is currently flat, the PCH force-include and `#include "pch.h"` still need `src`
-on the include path). When `SocketIO` gets real source, add the equivalent self include
-dirs to it too.
+on the include path). The **same self include dirs were added to `RMAP_Svc_SocketIO`** this
+session when it got real source + PCH (flat `src/`, same rationale as REST).
 
 ### KEY DECISION - filters via source_group(TREE), disk-mirrored
 
@@ -233,7 +249,7 @@ include dir to `RMAP` as `$<BUILD_INTERFACE:...>` PUBLIC; when ON, `find_package
 `if(EXISTS "${dir}/.git")` guard in each block passes empty git args when the source is
 already present (skip re-download).
 
-**All five ExternalProjects set `UPDATE_DISCONNECTED ON`** (added 2026-07-24). Without it, a
+**All six ExternalProjects set `UPDATE_DISCONNECTED ON`** (added 2026-07-24). Without it, a
 git-based ExternalProject re-runs its **update step on every build** ("Performing update
 step... Already at requested tag"); that update regenerates its stamp, and since the
 configure step depends on the update stamp, it **cascades** into re-configure -> re-build ->
@@ -252,10 +268,10 @@ updated - accepted (better reproducibility); the four tag-pinned deps never need
 anyway. Three **header-only** libs are wired this way:
 nlohmann_json, asio, websocketpp. All three include dirs are PUBLIC on `RMAP`, so the
 service OBJECT libraries see them transitively via
-`$<TARGET_PROPERTY:RMAP,INTERFACE_INCLUDE_DIRECTORIES>`. Two further libs, **BoringSSL
-and libcurl, are COMPILED** (not header-only) and therefore use a different, heavier
-block (real configure+build+install via ExternalProject, PRIVATE link) - see their
-subsections below.
+`$<TARGET_PROPERTY:RMAP,INTERFACE_INCLUDE_DIRECTORIES>`. Three further libs, **BoringSSL,
+libcurl, and socket.io-client-cpp, are COMPILED** (not header-only) and therefore use a
+different, heavier block (real configure+build+install via ExternalProject, PRIVATE link) -
+see their subsections below.
 
 **nlohmann_json.** `RMAP.h` exposes `nlohmann::ordered_json` in its public API. Option
 `RMAP_USE_SYSTEM_JSON` (OFF). OFF fetches v3.11.3 (tag `v3.11.3`) into
@@ -377,6 +393,82 @@ Sneeze uses** - DavidSr's instruction; authoritative reference is
   build curl fetches + compiles from source (a few minutes, like BoringSSL).
 - `curl_build` was added to the service dependency loop (see next section).
 
+**socket.io-client-cpp / "sioclient" (COMPILED - the third odd one out).** Option
+`RMAP_USE_SYSTEM_SIOCLIENT` (OFF). Used by `RMAP_Svc_SocketIO/src/Net.cpp`
+(`<sio_client.h>`, `sio::client`). Built into a static **`sioclient_tls`** (its TLS variant,
+`-DSIO_TLS`) and linked PRIVATE. The block (guarded by `if(NOT RMAP_USE_SYSTEM_SIOCLIENT)`),
+placed right after the libcurl block:
+- **Pinned to a specific `master` commit (`3b7be7e...`, 2025-08-28), NOT the newest release
+  tag `3.1.0`.** This is the crux and was hard-won: DavidSr originally asked for 3.1.0, but
+  the 3.1.0 tag's `CMakeLists.txt` does `set_property(TARGET sioclient_tls PROPERTY
+  CXX_STANDARD 11)` - a HARD cap at C++11. Modern BoringSSL's public C++ headers
+  (`openssl/span.h`) REQUIRE C++17 (they use inline variables + `std::string_view`), so the
+  3.1.0 TLS lib cannot compile against our BoringSSL. `master` relaxed that line to
+  `target_compile_features(sioclient_tls PUBLIC cxx_std_11)` - a *minimum*, not a cap - so
+  passing `-DCMAKE_CXX_STANDARD=17` raises the whole build to C++17 and it compiles against
+  BoringSSL WITHOUT patching upstream. (There is no C++17-era tagged release; 3.1.0 from 2021
+  is the newest tag and `master` is still `VERSION 3.1.0`.) A fixed commit is pinned (not the
+  moving `master` ref) for reproducibility, which forces **`GIT_SHALLOW` OFF** (an arbitrary
+  SHA is not fetchable via a shallow clone). The search-engine "synthesis" claiming you must
+  NOT compile socket.io at C++17 was WRONG - verified against the actual CMakeLists (primary
+  source): C++11 source compiles fine at C++17, and the `_WEBSOCKETPP_CPP11_*` defines are
+  about std-vs-Boost selection, orthogonal to `-std`.
+- **Pulls its OWN git submodules** (`GIT_SUBMODULES "lib/websocketpp" "lib/rapidjson"
+  "lib/asio"` - master's `.gitmodules` no longer includes `catch`). These are internal to
+  sioclient's compilation and SEPARATE from RMAP's own asio/websocketpp; sioclient's public
+  `sio_*.h` headers are pimpl'd, so `RMAP_Svc_SocketIO` only needs the sio include dir (no
+  asio/websocketpp exposure, no ODR concern).
+- **TLS backend = BoringSSL on EVERY platform** (unlike curl, socket.io has no Schannel
+  path - its TLS is websocketpp -> asio SSL -> the OpenSSL API). Wired by pointing its
+  `find_package(OpenSSL)` at the BoringSSL RMAP already builds:
+  `-DOPENSSL_ROOT_DIR=${RMAP_BORINGSSL_PREFIX} -DOPENSSL_USE_STATIC_LIBS=TRUE
+  -DOPENSSL_INCLUDE_DIR=... -DOPENSSL_CRYPTO_LIBRARY=${RMAP_BORINGSSL_CRYPTO_LIB}
+  -DOPENSSL_SSL_LIBRARY=${RMAP_BORINGSSL_SSL_LIB}`, plus `add_dependencies(sioclient_build
+  boringssl_build)` (guarded by `TARGET boringssl_build`).
+- **MSVC compile flags injected via `-DCMAKE_CXX_FLAGS` (a `_sioclient_cxx_flags` var, MSVC
+  only):** `/DWIN32 /D_WINDOWS /EHsc /permissive- /Zc:__cplusplus /DWIN32_LEAN_AND_MEAN
+  /DNOMINMAX /DNOCRYPT`. WHY each: setting `CMAKE_CXX_FLAGS` on the command line REPLACES
+  CMake's MSVC defaults, so `/DWIN32 /D_WINDOWS /EHsc` must be RE-STATED (socket.io uses
+  exceptions -> without `/EHsc` you get warning C4530). `/DNOCRYPT`+`/DWIN32_LEAN_AND_MEAN`
+  keep `<wincrypt.h>` out (its `X509_NAME`/`PKCS7`/`LPCSTR` macros collide with BoringSSL
+  types - the same collision SB guards). **`/DNOMINMAX` was the non-obvious fix**: without it
+  `<windows.h>` (pulled via asio) `#define`s a `max()` macro that mangles
+  `std::numeric_limits<size_t>::max()` in BoringSSL's `span.h` line 42, producing the
+  misleading "`dynamic_extent` did not evaluate to a constant / read of an uninitialized
+  symbol" errors (a red-herring web search called it an MSVC compiler bug; it was the `max`
+  macro). `/permissive- /Zc:__cplusplus` = conformance mode for BoringSSL's C++ headers.
+- Other `CMAKE_ARGS`: `-DCMAKE_INSTALL_PREFIX=${RMAP_SIOCLIENT_PREFIX}` (=
+  `${CMAKE_CURRENT_BINARY_DIR}/socketio/$<CONFIG>`), `-DCMAKE_BUILD_TYPE=$<CONFIG>`,
+  `-DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_STANDARD_REQUIRED=ON`, `-DBUILD_SHARED_LIBS=OFF`,
+  `-DBUILD_UNIT_TESTS=OFF`, **`-DBUILD_TESTING=OFF`** (CRITICAL: master is the top project so
+  it `include(CTest)`, which defaults `BUILD_TESTING=ON` and then FetchContent-clones Catch2
+  and builds `sio_test.exe` - both wasteful AND the source of a spurious post-install
+  `exit code -1` on the aggregate custom-build step; `-DBUILD_TESTING=OFF` removed both and
+  the build goes green), `-DUSE_SUBMODULES=ON`. Explicit `BUILD_COMMAND`/`INSTALL_COMMAND`
+  with `--config $<CONFIG>` (same `$<CONFIG>` genex discipline as BoringSSL/curl).
+- **Static lib path:** `${RMAP_SIOCLIENT_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}
+  sioclient_tls${CMAKE_STATIC_LIBRARY_SUFFIX}` (Windows `sioclient_tls.lib`; no debug postfix
+  - master sets none). Install lays headers flat under `<prefix>/include` (`sio_client.h`,
+  `sio_message.h`, `sio_socket.h`).
+- **Header visibility + linkage:** build-only PUBLIC include
+  (`$<BUILD_INTERFACE:${RMAP_SIOCLIENT_PREFIX}/include>`) so `RMAP_Svc_SocketIO` compiles
+  against `<sio_client.h>` via RMAP's INTERFACE include dirs; PRIVATE link
+  (`target_link_libraries(RMAP PRIVATE "${RMAP_SIOCLIENT_LIB}")`) kept out of the export set,
+  same static-archive consequence as BoringSSL/curl (a downstream exe must also link
+  `sioclient_tls`; its BoringSSL/`ws2_32`/`crypt32` needs are already covered by the
+  BoringSSL block).
+- **The predicted "old asio vs modern BoringSSL removed-API" risk did NOT materialize** -
+  master's bundled asio compiled clean against modern BoringSSL. The real blockers were the
+  C++11 cap (fixed by the master pin) and the `NOMINMAX`/`NOCRYPT`/`/EHsc` flags.
+- `sioclient_build` was added to the service dependency loop (see next section).
+- **BUILD-VERIFIED (2026-07-24):** `cmake --build build --target sioclient_build --config
+  Release` clones the pinned master commit + submodules, builds `sioclient.lib` AND
+  `sioclient_tls.lib` against BoringSSL, and installs them + the sio headers; `EXITCODE=0`.
+  A second incremental build is a pure no-op (UPDATE_DISCONNECTED works). NOTE: a full
+  `RMAP.lib` build still cannot complete because `RMAP_Svc_SocketIO`'s own source has the
+  pending MV::-era migration (its `pch.h` includes `<MVMF.h>`/`<MVIO.h>`/`"LibraryMVIO.h"`) -
+  that is DavidSr-owned and unrelated to the socket.io wiring, which is proven working.
+
 ### KEY DECISION - services must depend on the fetch/build targets (clean-build ordering)
 
 Only `RMAP` depends on the `*_fetch` targets, but the service OBJECT libraries compile
@@ -385,8 +477,8 @@ that actually `#include`s the fetched headers. On a **clean** build a service co
 before its headers finished cloning -> `C1083`. Fix (top-level, after the fetch/build
 blocks): loop over `RMAP_Svc_SB/Rest/SocketIO` and, for each that exists, `add_dependencies`
 on each existing dep target (`nlohmann_json_fetch`, `asio_fetch`, `websocketpp_fetch`,
-`boringssl_build`, and `curl_build` - the last two so services wait for the compiled libs'
-installed headers too).
+`boringssl_build`, `curl_build`, and `sioclient_build` - the compiled ones so services wait
+for the installed headers too).
 Verified: after deleting both `build/` and `RMAP/third_party/`, a cold configure+build
 fetches all three and compiles services with no header/`not a git repository`/`MSB8066`
 errors. (The `not a git repository` error seen during testing was a false alarm from
@@ -418,9 +510,15 @@ a `pch` pair landed this session; its `CMakeLists.txt` also gained the self incl
 (`include/RMAP_Svc_Rest` + `src`) so `pch.h` resolves - same fix pattern as SB. REST did
 NOT get SB's `WIN32_LEAN_AND_MEAN`/`NOCRYPT` defines: those exist solely for the BoringSSL
 x `<wincrypt.h>` collision, and a grep confirmed the REST sources use no asio/websocketpp/
-BoringSSL (so no `<windows.h>`-via-asio pull, no collision). `RMAP_Svc_SocketIO` still has
-**no PCH** (placeholder has no `pch.h`) - add per-service PCH matching core when real code
-lands there too.
+BoringSSL (so no `<windows.h>`-via-asio pull, no collision). **`RMAP_Svc_SocketIO` now also
+uses PCH** (`target_precompile_headers(RMAP_Svc_SocketIO PRIVATE src/pch.h)`) since real
+SocketIO source with a `pch` pair landed this session; it also gained the self include dirs
+(`include/RMAP_Svc_SocketIO` + `src`) - same fix pattern as SB/REST. Note the
+`NOMINMAX`/`NOCRYPT`/etc. wincrypt+windows.h guards for the socket.io path live in the
+**socket.io ExternalProject's own** `CMAKE_CXX_FLAGS` (it compiles the asio/BoringSSL TLS
+stack), NOT in `RMAP_Svc_SocketIO`'s CMakeLists - the SocketIO module itself only includes
+the pimpl'd `<sio_client.h>`, which does not pull asio/BoringSSL/`<windows.h>`, so it needs
+no such guard (same reasoning as REST).
 
 ## Build & Verify
 
@@ -473,10 +571,10 @@ Target naming: the final STATIC target is `RMAP` (produces `RMAP.lib`); each ser
 OBJECT target is named for its module (`RMAP_Svc_SB`, etc.). CMake options are
 `RMAP_BUILD_SVC_<NAME>` (SB/REST/SOCKETIO) plus one `RMAP_USE_SYSTEM_<NAME>` per
 third-party lib: `RMAP_USE_SYSTEM_JSON`, `RMAP_USE_SYSTEM_ASIO`,
-`RMAP_USE_SYSTEM_WEBSOCKETPP`, `RMAP_USE_SYSTEM_BORINGSSL`, `RMAP_USE_SYSTEM_CURL`
-(all OFF by default). Third-party ExternalProject target names: `nlohmann_json_fetch`,
-`asio_fetch`, `websocketpp_fetch` (header-only, empty build), `boringssl_build`,
-`curl_build` (compiled).
+`RMAP_USE_SYSTEM_WEBSOCKETPP`, `RMAP_USE_SYSTEM_BORINGSSL`, `RMAP_USE_SYSTEM_CURL`,
+`RMAP_USE_SYSTEM_SIOCLIENT` (all OFF by default). Third-party ExternalProject target names:
+`nlohmann_json_fetch`, `asio_fetch`, `websocketpp_fetch` (header-only, empty build),
+`boringssl_build`, `curl_build`, `sioclient_build` (compiled).
 
 ## History Note - the phantom RMAP_Core / RMAP_SB tree
 
@@ -546,9 +644,13 @@ NOT restored.
   `LibraryMVRest.cpp/.h` keep the "MVRest" naming - the same MV::-era migration pending as
   SB. Not yet migrated. If REST later pulls asio/websocketpp/BoringSSL (it does not today),
   it will need SB's `WIN32_LEAN_AND_MEAN`/`NOCRYPT` guard.
-- Real service source: `RMAP_Svc_SocketIO` is the only remaining one-line placeholder. When
-  real code lands, add per-service PCH + self include dirs matching core/SB/REST, and add
-  its genuine external dependencies in its `CMakeLists.txt`.
+- **SocketIO compile blocker (source migration, DavidSr-owned):** like SB/REST,
+  `RMAP_Svc_SocketIO` now has real source and fully-working CMake (files listed, PCH + self
+  include dirs added; its socket.io-client-cpp dependency BUILD-VERIFIED), but its `pch.h`
+  still includes legacy `<MVMF.h>`/`<MVIO.h>`/`"LibraryMVIO.h"` and its sources use the
+  `MV::MVIO` namespace - the same MV::-era migration pending as SB/REST. Verify progress with
+  `cmake --build build --target RMAP_Svc_SocketIO --config Release`. (All three service
+  modules now share this one remaining blocker; all CMake-side work is done.)
 - Define the concrete responsibilities and public APIs of each service (SB / Rest /
   SocketIO). Currently inferred, not verified.
 - Cross-platform is designed but only verified on MSVC/Windows. Verify on Linux
@@ -715,3 +817,29 @@ NOT restored.
   No CMake regen needed (no files added/removed). LESSON: when a rename token is a substring of
   other identifiers (class names, scope-resolution, string literals), never `replace_all`
   blindly - enumerate the categories first and ask for scope.
+- 2026-07-24 (DavidSr): Populated `RMAP_Svc_SocketIO` and added **socket.io-client-cpp** as a
+  sixth third-party lib (COMPILED). Module side (mirrors REST): replaced the placeholder file
+  list with the real flat `src/` tree (Client/Control/Library.cpp+.h/Net/Recover/Refresh/
+  Service/Source_IO_Object/Source_IO_Session/Source_IO_Session_Null/Subscription + pch pair),
+  enabled PCH, added self include dirs (`include/RMAP_Svc_SocketIO` + `src`); no
+  NOMINMAX/NOCRYPT on the module (it only includes the pimpl'd `<sio_client.h>`). Third-party
+  side: implemented `ExternalProject_Add(sioclient_build)` (option `RMAP_USE_SYSTEM_SIOCLIENT`
+  OFF) - see its subsection above for full detail. The hard-won parts, in order discovered:
+  (1) DavidSr asked for 3.1.0, but that tag HARD-caps `sioclient_tls` at `CXX_STANDARD 11`
+  while modern BoringSSL's `span.h` needs C++17 -> investigated tags/master, found master
+  relaxed it to a `cxx_std_11` *minimum*, so pinned a specific master commit (`3b7be7e`) +
+  `-DCMAKE_CXX_STANDARD=17` (verified against the real CMakeLists that a search "synthesis"
+  warning against C++17 was wrong). (2) `<wincrypt.h>` collision -> `NOCRYPT`/
+  `WIN32_LEAN_AND_MEAN` (as SB). (3) `span.h` "dynamic_extent not constant" -> root cause was
+  `<windows.h>`'s `max()` macro mangling `std::numeric_limits<size_t>::max()`, fixed with
+  `/DNOMINMAX` (NOT the MSVC compiler bug a web search suggested). (4) restored `/EHsc` +
+  defaults after realizing `-DCMAKE_CXX_FLAGS` replaces them (C4530). (5) `-DBUILD_TESTING=OFF`
+  to stop master (as top project via `include(CTest)`) FetchContent-cloning Catch2 + building
+  `sio_test.exe`, which also cleared a spurious post-install `exit code -1`. TLS backed by the
+  existing BoringSSL on all platforms (socket.io has no Schannel path). The feared old-asio-vs-
+  modern-BoringSSL API breakage never happened. BUILD-VERIFIED: `sioclient_build` builds
+  `sioclient_tls.lib` green (EXITCODE=0), incremental = no-op. Updated `.gitignore`
+  (`/RMAP/third_party/socketio/`), `README.md` (dir tree, toolchain note, options table,
+  Dependencies entry, linking section), and this resume point. Full `RMAP.lib` still blocked
+  only by the SocketIO module's pending MV::-era source migration (DavidSr-owned), same as
+  SB/REST - the socket.io integration itself is proven.
