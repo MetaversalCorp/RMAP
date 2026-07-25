@@ -23,7 +23,7 @@ namespace RMAP
          virtual uint64_t GetUserIx ()                                                   = 0;
       };
 
-      class RMAP_CORE_API MODEL_SESSION_C2A : public MODEL_SESSION
+      class MODEL_SESSION_C2A : public MODEL_SESSION
       {
       private:
          class Impl;
@@ -96,7 +96,7 @@ namespace RMAP
          virtual bool Logout () = 0;
       };
 
-      class RMAP_CORE_API MODEL_SESSION_NULL : public MODEL_SESSION
+      class MODEL_SESSION_NULL : public MODEL_SESSION
       {
       private:
          class Impl;
@@ -160,7 +160,7 @@ namespace RMAP
          virtual bool Logout () = 0;
       };
 
-      class RMAP_CORE_API MODEL_SESSION_UIP : public MODEL_SESSION
+      class MODEL_SESSION_UIP : public MODEL_SESSION
       {
       private:
          class Impl;

@@ -14,7 +14,7 @@ namespace RMAP
    namespace CORE
    {
       template<class T, class P>
-      class RMAP_CORE_API IREFERENCE
+      class IREFERENCE
       {
       public:
          IREFERENCE (std::string sID)
@@ -41,7 +41,7 @@ namespace RMAP
          char* m_psID;
       };
 
-      class RMAP_CORE_API FACTORY
+      class FACTORY
       {
       public:
          FACTORY () {}
@@ -72,7 +72,7 @@ namespace RMAP
          bool           bPropagate;
       };
 
-      class RMAP_CORE_API NOTIFICATION
+      class NOTIFICATION
       {
       private:
          class Impl;
@@ -123,10 +123,10 @@ namespace RMAP
       }
       class MODEL_SESSION;
       class IRESPONSE;
-      class RMAP_CORE_API CLIENT : public NOTIFICATION
+      class CLIENT : public NOTIFICATION
       {
       public:
-         class RMAP_CORE_API IREFERENCE : public RMAP::CORE::IREFERENCE<CLIENT*, SERVICE*>
+         class IREFERENCE : public RMAP::CORE::IREFERENCE<CLIENT*, SERVICE*>
          {
          public:
             IREFERENCE (std::string sID, uint64_t twClientIx);
@@ -141,14 +141,14 @@ namespace RMAP
          };
 
       public:
-         class RMAP_CORE_API ACTION
+         class ACTION
          {
          public:
             ACTION ();
             virtual ~ACTION ();
          };
 
-         class RMAP_CORE_API IACTION
+         class IACTION
          {
          public:
             enum eSTATUS_CODE
@@ -224,10 +224,10 @@ namespace RMAP
       **                                                 Model                                                                      **
       *******************************************************************************************************************************/
 
-      class RMAP_CORE_API MODEL : public NOTIFICATION
+      class MODEL : public NOTIFICATION
       {
       public:
-         class RMAP_CORE_API FACTORY : public RMAP::CORE::FACTORY
+         class FACTORY : public RMAP::CORE::FACTORY
          {
          public:
             FACTORY (std::string sID);
@@ -276,10 +276,10 @@ namespace RMAP
       **                                                 MODEL_SESSION                                                              **
       *******************************************************************************************************************************/
 
-      class RMAP_CORE_API MODEL_SESSION : public MODEL
+      class MODEL_SESSION : public MODEL
       {
       public:
-         class RMAP_CORE_API FACTORY : public MODEL::FACTORY
+         class FACTORY : public MODEL::FACTORY
          {
          public:
             FACTORY (std::string sID);
@@ -287,7 +287,7 @@ namespace RMAP
          };
 
       public:
-         class RMAP_CORE_API IREFERENCE : public RMAP::CORE::IREFERENCE<MODEL*, SOURCE*>
+         class IREFERENCE : public RMAP::CORE::IREFERENCE<MODEL*, SOURCE*>
          {
          public:
             IREFERENCE (std::string sID, bool bAutoConnect);
@@ -323,10 +323,10 @@ namespace RMAP
       **                                                 Service                                                                    **
       *******************************************************************************************************************************/
 
-      class RMAP_CORE_API SERVICE : public NOTIFICATION
+      class SERVICE : public NOTIFICATION
       {
       public:
-         class RMAP_CORE_API IREFERENCE : public RMAP::CORE::IREFERENCE<SERVICE*, NAMESPACE*>
+         class IREFERENCE : public RMAP::CORE::IREFERENCE<SERVICE*, NAMESPACE*>
          {
          public:
             IREFERENCE (std::string sID, std::string sConnect);
@@ -340,7 +340,7 @@ namespace RMAP
          };
 
       public:
-         class RMAP_CORE_API FACTORY : public RMAP::CORE::FACTORY
+         class FACTORY : public RMAP::CORE::FACTORY
          {
          public:
             FACTORY (std::string sID);
@@ -393,7 +393,7 @@ namespace RMAP
       **                                                 SOURCE                                                                     **
       *******************************************************************************************************************************/
 
-      class RMAP_CORE_API SOURCE
+      class SOURCE
       {
       public:
          class REFERENCE
@@ -408,7 +408,7 @@ namespace RMAP
             std::map<std::string, const CLIENT::ACTION*>    *papAction;
          };
 
-         class RMAP_CORE_API FACTORY : public RMAP::CORE::FACTORY
+         class FACTORY : public RMAP::CORE::FACTORY
          {
          public:
             enum TYPE
@@ -488,10 +488,10 @@ namespace RMAP
          virtual ~ISOURCE_SESSION () {}
       };
 
-      class RMAP_CORE_API SOURCE_SESSION : public SOURCE
+      class SOURCE_SESSION : public SOURCE
       {
       public:
-         class RMAP_CORE_API LOGIN
+         class LOGIN
          {
          public:
             LOGIN ();
@@ -499,7 +499,7 @@ namespace RMAP
          };
 
       public:
-         class RMAP_CORE_API FACTORY : public SOURCE::FACTORY
+         class FACTORY : public SOURCE::FACTORY
          {
          public:
             FACTORY (std::string sID_Service, std::string sID_Model, int wClass, std::map<std::string, const CLIENT::ACTION*> &apAction);

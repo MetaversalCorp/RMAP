@@ -13,7 +13,7 @@ namespace RMAP
 {
    namespace CORE
    {
-      class RMAP_CORE_API UTILS
+      class UTILS
       {
       public:
          static std::string                        Escape (std::string s);

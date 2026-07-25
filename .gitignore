@@ -15,6 +15,15 @@ x64/
 # nlohmann_json fetched from git at build time (not committed)
 /RMAP/third_party/json/
 
+# asio fetched from git at build time (not committed)
+/RMAP/third_party/asio/
+
+# websocketpp fetched from git at build time (not committed)
+/RMAP/third_party/websocketpp/
+
+# BoringSSL fetched + built from git at build time (not committed)
+/RMAP/third_party/boringssl/
+
 # IDE / editor
 *.user
 .vs/

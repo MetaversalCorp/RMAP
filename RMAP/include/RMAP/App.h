@@ -23,7 +23,7 @@ namespace RMAP
       typedef bool (*fnSourceClassEnum) (SOURCECLASS* pSourceClass, void* pParam);
       typedef bool (*fnServiceEnum)     (SERVICE* pService, void* pParam);
 
-      class RMAP_CORE_API NAMESPACE
+      class NAMESPACE
       {
       private:
          class Impl;
@@ -132,7 +132,7 @@ namespace RMAP
          Impl* m_pImpl;
       };
 
-      class RMAP_CORE_API SOURCECLASS
+      class  SOURCECLASS
       {
       public:
          SOURCECLASS (NAMESPACE* pNamespace, MODEL::FACTORY* pModel_Factory, SOURCE::FACTORY* pSource_Factory);
@@ -150,7 +150,7 @@ namespace RMAP
 
       class CORE;
       class PLUGIN;
-      class RMAP_CORE_API LIBRARY
+      class  LIBRARY
       {
       public:
          LIBRARY (std::string sID, std::string sCopyright, std::string sTitle, std::string sVersion);
@@ -173,10 +173,10 @@ namespace RMAP
       **                                                 REGISTRY                                                                   **
       *******************************************************************************************************************************/
 
-      class RMAP_CORE_API REGISTRY
+      class  REGISTRY
       {
       public:
-         class RMAP_CORE_API ZONE
+         class  ZONE
          {
          public:
             ZONE (REGISTRY* pRegistry, std::string sZone);
@@ -249,7 +249,7 @@ namespace RMAP
       };
 
       class LNG;
-      class RMAP_CORE_API APP
+      class APP
       {
       private:
          class Impl;

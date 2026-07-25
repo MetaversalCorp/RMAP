@@ -18,7 +18,7 @@ namespace RMAP
          class MEM;
          class MODEL;
 
-         class RMAP_CORE_API OBJECTHEAD
+         class OBJECTHEAD
          {
          public:
             OBJECTHEAD ();
@@ -37,7 +37,7 @@ namespace RMAP
          {
          };
 
-         class RMAP_CORE_API SOURCE : public RMAP::CORE::SOURCE
+         class SOURCE : public RMAP::CORE::SOURCE
          {
          private:
             class Impl;
@@ -53,7 +53,7 @@ namespace RMAP
                bool bIndependent;
             };
 
-            class RMAP_CORE_API FACTORY : public RMAP::CORE::SOURCE::FACTORY
+            class FACTORY : public RMAP::CORE::SOURCE::FACTORY
             {
             public:
                FACTORY (std::string sID_Service, std::string sID_Model, uint16_t wClass, std::map<std::string, const CLIENT::ACTION*>& apAction, bool bIndependent);
@@ -91,14 +91,14 @@ namespace RMAP
             virtual void Changed  (SOURCE* pObject, SOURCE* pChild, CHANGE* pChange) = 0;
          };
 
-         class RMAP_CORE_API MODEL : public RMAP::CORE::MODEL
+         class MODEL : public RMAP::CORE::MODEL
          {
          private:
             class Impl;
             Impl* m_pImpl;
 
          public:
-            class RMAP_CORE_API IREFERENCE : public RMAP::CORE::IREFERENCE<RMAP::CORE::MODEL*, RMAP::CORE::SOURCE*>
+            class IREFERENCE : public RMAP::CORE::IREFERENCE<RMAP::CORE::MODEL*, RMAP::CORE::SOURCE*>
             {
             public:
                IREFERENCE (const std::string& sID, uint64_t twObjectIx, uint64_t twChildIx);
@@ -255,7 +255,7 @@ namespace RMAP
             virtual bool onChange (SOURCE* pParent, SOURCE* pObject, SOURCE* pChild, void* pParam) = 0;
          };
 
-         class RMAP_CORE_API MEM
+         class MEM
          {
          private:
             class Impl;

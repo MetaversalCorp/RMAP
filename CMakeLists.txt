@@ -25,6 +25,9 @@ option(RMAP_BUILD_SVC_REST     "Build the REST service module into RMAP.lib"    
 option(RMAP_BUILD_SVC_SOCKETIO "Build the SocketIO service module into RMAP.lib" ON)
 
 option(RMAP_USE_SYSTEM_JSON "Use an external nlohmann_json (find_package) instead of the git-fetched copy" OFF)
+option(RMAP_USE_SYSTEM_ASIO "Use an external asio (find_package) instead of the git-fetched copy" OFF)
+option(RMAP_USE_SYSTEM_WEBSOCKETPP "Use an external websocketpp (find_package) instead of the git-fetched copy" OFF)
+option(RMAP_USE_SYSTEM_BORINGSSL "Use an external BoringSSL (find_package) instead of the git-built copy" OFF)
 
 # ---------------------------------------------------------------------------
 # Modules. Each module is its own Visual Studio project:
@@ -97,6 +100,187 @@ else()
    target_include_directories(RMAP PUBLIC
       $<BUILD_INTERFACE:${RMAP_JSON_DIR}/include>)
 endif()
+
+# ---------------------------------------------------------------------------
+# asio (standalone, header-only). Pinned to 1.30.2.
+# RMAP_USE_SYSTEM_ASIO=ON  -> external package via find_package.
+# RMAP_USE_SYSTEM_ASIO=OFF -> headers fetched from git at build time into
+#    RMAP/third_party/asio (not committed). Headers live under asio/include.
+# ASIO_STANDALONE forces the non-Boost, header-only asio in both cases.
+# ---------------------------------------------------------------------------
+
+if(RMAP_USE_SYSTEM_ASIO)
+   find_package(asio 1.30.2 CONFIG REQUIRED)
+   target_link_libraries(RMAP PUBLIC asio::asio)
+else()
+   include(ExternalProject)
+
+   set(RMAP_ASIO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/RMAP/third_party/asio")
+   if(EXISTS "${RMAP_ASIO_DIR}/.git")
+      set(_asio_git_args)
+   else()
+      set(_asio_git_args
+         GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
+         GIT_TAG        asio-1-30-2
+         GIT_SHALLOW    ON)
+   endif()
+
+   ExternalProject_Add(asio_fetch
+      ${_asio_git_args}
+      SOURCE_DIR        "${RMAP_ASIO_DIR}"
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND     ""
+      INSTALL_COMMAND   ""
+      TEST_COMMAND      "")
+
+   add_dependencies(RMAP asio_fetch)
+
+   target_include_directories(RMAP PUBLIC
+      $<BUILD_INTERFACE:${RMAP_ASIO_DIR}/asio/include>)
+endif()
+
+target_compile_definitions(RMAP PUBLIC ASIO_STANDALONE)
+
+# ---------------------------------------------------------------------------
+# websocketpp (header-only). Pinned to 0.8.2. Layers on top of asio.
+# RMAP_USE_SYSTEM_WEBSOCKETPP=ON  -> external package via find_package.
+# RMAP_USE_SYSTEM_WEBSOCKETPP=OFF -> headers fetched from git at build time into
+#    RMAP/third_party/websocketpp (not committed). The include dir is the clone
+#    root itself because headers are included as <websocketpp/...>.
+# ---------------------------------------------------------------------------
+
+if(RMAP_USE_SYSTEM_WEBSOCKETPP)
+   find_package(websocketpp 0.8.2 CONFIG REQUIRED)
+   target_link_libraries(RMAP PUBLIC websocketpp::websocketpp)
+else()
+   include(ExternalProject)
+
+   set(RMAP_WEBSOCKETPP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/RMAP/third_party/websocketpp")
+   if(EXISTS "${RMAP_WEBSOCKETPP_DIR}/.git")
+      set(_websocketpp_git_args)
+   else()
+      set(_websocketpp_git_args
+         GIT_REPOSITORY https://github.com/zaphoyd/websocketpp.git
+         GIT_TAG        0.8.2
+         GIT_SHALLOW    ON)
+   endif()
+
+   ExternalProject_Add(websocketpp_fetch
+      ${_websocketpp_git_args}
+      SOURCE_DIR        "${RMAP_WEBSOCKETPP_DIR}"
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND     ""
+      INSTALL_COMMAND   ""
+      TEST_COMMAND      "")
+
+   add_dependencies(RMAP websocketpp_fetch)
+
+   target_include_directories(RMAP PUBLIC
+      $<BUILD_INTERFACE:${RMAP_WEBSOCKETPP_DIR}>)
+endif()
+
+# websocketpp uses Boost for common facilities unless told to use the C++11
+# standard library (matching our standalone asio). Analogous to ASIO_STANDALONE.
+target_compile_definitions(RMAP PUBLIC _WEBSOCKETPP_CPP11_STL_)
+
+# ---------------------------------------------------------------------------
+# BoringSSL (COMPILED - not header-only). Tracks google/boringssl main, matching
+# the version Sneeze uses (C:\Dev\OMB\Sneeze\deps\boringssl.cmake). Built from
+# source into static libcrypto/libssl via its own CMake build, using the parent
+# generator (portable across Windows/Linux/macOS). Linked PRIVATE (internal use;
+# kept out of RMAP's public API and export set). The $<CONFIG> genex is confined
+# to CMAKE_ARGS / BUILD_BYPRODUCTS / target properties / --config (fields that
+# expand it) - not ExternalProject dir args, which do not.
+# Build prereqs: Go + a C/C++ compiler (+ NASM on Windows x86/x64).
+# ---------------------------------------------------------------------------
+
+if(NOT RMAP_USE_SYSTEM_BORINGSSL)
+   include(ExternalProject)
+
+   set(RMAP_BORINGSSL_DIR    "${CMAKE_CURRENT_SOURCE_DIR}/RMAP/third_party/boringssl")
+   set(RMAP_BORINGSSL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/boringssl/$<CONFIG>")
+   set(RMAP_BORINGSSL_SSL_LIB
+      "${RMAP_BORINGSSL_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}ssl${CMAKE_STATIC_LIBRARY_SUFFIX}")
+   set(RMAP_BORINGSSL_CRYPTO_LIB
+      "${RMAP_BORINGSSL_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}crypto${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
+   if(EXISTS "${RMAP_BORINGSSL_DIR}/.git")
+      set(_boringssl_git_args)
+   else()
+      set(_boringssl_git_args
+         GIT_REPOSITORY https://github.com/google/boringssl.git
+         GIT_TAG        main
+         GIT_SHALLOW    ON)
+   endif()
+
+   # BoringSSL's CMakeLists does enable_language(ASM_NASM) without probing common
+   # install paths, so forward an absolute nasm path if one is found (winget drops
+   # nasm under %LOCALAPPDATA%/bin/NASM, which is not on PATH out of the box).
+   set(_boringssl_extra_args)
+   if(WIN32  AND  NOT CMAKE_CROSSCOMPILING)
+      find_program(NASM_EXECUTABLE nasm
+         HINTS
+            "$ENV{LOCALAPPDATA}/bin/NASM"
+            "$ENV{ProgramFiles}/NASM"
+            "$ENV{ProgramFiles\(x86\)}/NASM")
+      if(NASM_EXECUTABLE)
+         list(APPEND _boringssl_extra_args -DCMAKE_ASM_NASM_COMPILER=${NASM_EXECUTABLE})
+      endif()
+   endif()
+
+   ExternalProject_Add(boringssl_build
+      ${_boringssl_git_args}
+      SOURCE_DIR "${RMAP_BORINGSSL_DIR}"
+      BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/boringssl/build"
+      CMAKE_ARGS
+         -DCMAKE_INSTALL_PREFIX=${RMAP_BORINGSSL_PREFIX}
+         -DBUILD_SHARED_LIBS=OFF
+         -DCMAKE_BUILD_TYPE=$<CONFIG>
+         -DBUILD_TESTING=OFF
+         ${_boringssl_extra_args}
+      BUILD_COMMAND   ${CMAKE_COMMAND} --build   <BINARY_DIR> --config $<CONFIG>
+      INSTALL_COMMAND ${CMAKE_COMMAND} --install <BINARY_DIR> --config $<CONFIG>
+      BUILD_BYPRODUCTS
+         "${RMAP_BORINGSSL_SSL_LIB}"
+         "${RMAP_BORINGSSL_CRYPTO_LIB}")
+
+   add_dependencies(RMAP boringssl_build)
+
+   # Build-only PUBLIC include so the service OBJECT libs (which read RMAP's
+   # INTERFACE include dirs) can compile against <openssl/...>, without adding
+   # anything to the installed/exported interface.
+   target_include_directories(RMAP PUBLIC
+      $<BUILD_INTERFACE:${RMAP_BORINGSSL_PREFIX}/include>)
+
+   # PRIVATE link keeps the static libs out of RMAP's export set.
+   target_link_libraries(RMAP PRIVATE
+      "${RMAP_BORINGSSL_SSL_LIB}"
+      "${RMAP_BORINGSSL_CRYPTO_LIB}")
+   if(WIN32)
+      target_link_libraries(RMAP PRIVATE ws2_32 crypt32)
+   elseif(UNIX  AND  NOT APPLE)
+      target_link_libraries(RMAP PRIVATE pthread dl)
+   endif()
+endif()
+
+# ---------------------------------------------------------------------------
+# Fetched third-party headers are pulled at build time by ExternalProject and
+# consumed transitively (via RMAP's include dirs) by the service OBJECT
+# libraries, which compile BEFORE RMAP (their objects fold into it). Only RMAP
+# depends on the fetch targets, so a clean build could compile a service before
+# the clone finished. Make every enabled service depend on each active fetch (and
+# the BoringSSL build) so the headers are present first.
+# ---------------------------------------------------------------------------
+
+foreach(_svc RMAP_Svc_SB RMAP_Svc_Rest RMAP_Svc_SocketIO)
+   if(TARGET ${_svc})
+      foreach(_dep nlohmann_json_fetch asio_fetch websocketpp_fetch boringssl_build)
+         if(TARGET ${_dep})
+            add_dependencies(${_svc} ${_dep})
+         endif()
+      endforeach()
+   endif()
+endforeach()
 
 # ---------------------------------------------------------------------------
 # Install + find_package(RMAP) support -> target RMAP::RMAP

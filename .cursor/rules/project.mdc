@@ -28,32 +28,59 @@ Repository: `https://github.com/MetaversalCorp/RMAP.git` (cloned to `C:\Dev\OMB\
 Module relationship (confirmed by DavidSr): RMAP is the core foundation; the three
 `RMAP_Svc_*` modules are independent service layers that all depend on RMAP core, but do
 NOT depend on each other. SB appears to be a byte-stream/socket protocol backend, Rest a
-REST backend, SocketIO a Socket.IO backend. The **core now contains real implementation
-source** (see inventory); the three service modules are still one-line placeholders
-(a `Svc_*_GetName()` accessor each) awaiting real code.
+REST backend, SocketIO a Socket.IO backend. The **core contains real implementation
+source** (see inventory). **`RMAP_Svc_SB` now also contains real source** (added by
+DavidSr this session - `base/`, `client/`, `model/`, `source/` subtrees plus `src` root
+files and a `pch` pair); it is no longer a placeholder. `RMAP_Svc_Rest` and
+`RMAP_Svc_SocketIO` are still one-line placeholders (a `Svc_*_GetName()` accessor each)
+awaiting real code.
+
+### Legacy naming - MVMF / MVSB are gone (replaced by RMAP / RMAP_Svc_SB)
+
+The old codebase used the names **MVMF** (the modeling framework = the core) and **MVSB**
+(the SB service). Those names **no longer exist**: MVMF has been replaced by **RMAP**
+(core) and MVSB by **RMAP_Svc_SB**. Any surviving reference to `MVMF`/`MVSB` (and the
+`MV::` namespace, and `SB_*`-era class names) in the SB source is a stale leftover, NOT a
+missing external dependency to wire up - the fix is always to migrate the code to the
+RMAP-era name, never to add a `find_package`/link.
+
+DavidSr is doing this source migration himself (he said "let ME fix it"). Progress so far:
+the `pch.h` `<MVMF.h>`/`<MVSB.h>` includes were resolved by him, and `LibraryMVSB.cpp/.h`
+were **renamed to `Library.cpp/.h`** (agent synced the `CMakeLists.txt` file list to match).
+The migration is **not complete**: the SB source still contains stale `MVMF`, `MV::`,
+`SB_OBJECT`, `REFERENCE`, `FACTORY`, `MAP`, `PLUGIN`, `ITIME`/`xTIME`, `LIBRARY` symbols
+(seen in `Library.h` and `base/Source_SB_Object.cpp` compile errors). That source migration
+is the current blocker to compiling the SB module (see Open Questions). All CMake-side
+issues for SB are resolved.
 
 ## Current State (as of 2026-07-24)
 
 Real core source is committed and the build is CMake-driven, generating a **multi-project
 Visual Studio solution** (one project per module) that produces a single `RMAP.lib`.
-Verified building on MSVC. The three service modules are still placeholders.
+Verified building on MSVC. **`RMAP_Svc_SB` now has real source and PCH enabled**; its
+**CMake config is fully working** (configure + generate succeed, `pch.h` resolves) but the
+module does not yet fully compile because DavidSr's source migration off the `MVMF`/`MVSB`/
+`MV::`/`SB_*` names is still in progress (see below). `RMAP_Svc_Rest` and
+`RMAP_Svc_SocketIO` remain placeholders.
 
-Everything on disk is committed (working tree was clean before this session's CMake
-restructure). Git history is two commits, both literally titled "Initial commit" /
-"Initial Commit" - `9434f77` (LICENSE + README only) then `854dd3f` (the whole current
-tree: real core source, single-target `CMakeLists.txt`, `CMakePresets.json`, headers,
-`.gitignore`, `cmake/RMAPConfig.cmake.in`). The per-module `CMakeLists.txt` files added
-this session are new/untracked (not yet committed at time of writing).
+Everything committed on disk was clean before the CMake restructure. Git history is two
+commits, both literally titled "Initial commit" / "Initial Commit" - `9434f77`
+(LICENSE + README only) then `854dd3f` (the whole current tree: real core source,
+single-target `CMakeLists.txt`, `CMakePresets.json`, headers, `.gitignore`,
+`cmake/RMAPConfig.cmake.in`). The per-module `CMakeLists.txt` files, the top-level rewrite,
+and all the new `RMAP_Svc_SB` source are new/untracked or modified and not yet committed.
 
 ### File inventory
 
 ```
 C:\Dev\OMB\RMAP\
   CMakeLists.txt                 top-level: project(), options, add_subdirectory each module,
-                                 folds service objects into RMAP, nlohmann_json, install/export
+                                 folds service objects into RMAP, third-party fetch blocks
+                                 (nlohmann_json + asio + websocketpp), service->fetch
+                                 dependency loop, install/export
   CMakePresets.json              "vs2022" configure preset + vs2022-debug/-release build presets
   cmake\RMAPConfig.cmake.in      find_package(RMAP) package config template
-  .gitignore                     ignores build output + CMake artifacts + third_party/json
+  .gitignore                     ignores build output + CMake artifacts + third_party/{json,asio,websocketpp,boringssl}
   LICENSE, README.md
   RMAP\                          core module (always built) -> the RMAP.lib STATIC target
     CMakeLists.txt               core project: RMAP_FILES list, STATIC lib, PCH, source_group
@@ -67,12 +94,24 @@ C:\Dev\OMB\RMAP\
        (root)   Library.cpp LibraryRMAP.cpp/.h Collection.h SharedObject.h LnG.cpp Logger.cpp
                 Package.cpp Plugin.cpp Registry.cpp Utils.cpp pch.cpp pch.h
     third_party\json\            nlohmann_json, git-fetched at BUILD time (not committed)
-  RMAP_Svc_SB\
-    CMakeLists.txt               service project: OBJECT lib, source_group (identical bar name)
-    include\RMAP_Svc_SB\RMAP_Svc_SB.h    declares RMAP::Svc_SB_GetName()
-    src\RMAP_Svc_SB.cpp
-  RMAP_Svc_Rest\                 (same structure) declares RMAP::Svc_Rest_GetName()
-  RMAP_Svc_SocketIO\             (same structure) declares RMAP::Svc_SocketIO_GetName()
+  RMAP_Svc_SB\                   NO LONGER A PLACEHOLDER - real source added this session
+    CMakeLists.txt               service project: OBJECT lib, full RMAP_Svc_SB_FILES list,
+                                 PRIVATE include dirs (include/RMAP_Svc_SB + src +
+                                 core's INTERFACE_INCLUDE_DIRECTORIES), PCH
+                                 (target_precompile_headers ... src/pch.h), source_group
+    include\RMAP_Svc_SB\RMAP_Svc_SB.h    public header, declares RMAP::Svc_SB_GetName()
+    src\                         implementation + private headers + pch:
+       base\    Source_SB_Object.cpp Source_SB_Session.cpp
+       client\  Client.cpp Control.cpp Net.cpp Recover.cpp Refresh.cpp Subscription.cpp
+       model\   Model_SBTime.cpp
+       source\  Source_SB_SBTime.cpp Source_SB_Session_Null.cpp
+       (root)   ByteStream.cpp Library.cpp/.h Map.cpp Service.cpp Time.cpp pch.cpp pch.h
+                (Library.cpp/.h renamed from LibraryMVSB.cpp/.h by DavidSr; the old
+                 src/RMAP_Svc_SB.cpp placeholder holding Svc_SB_GetName() was DELETED by
+                 him - so that symbol is now defined elsewhere in the real source or not
+                 at all; source still carries stale MVMF/MV::/SB_* symbols - see above)
+  RMAP_Svc_Rest\                 PLACEHOLDER (same structure) declares RMAP::Svc_Rest_GetName()
+  RMAP_Svc_SocketIO\             PLACEHOLDER (same structure) declares RMAP::Svc_SocketIO_GetName()
   .cursor\rules\project.mdc      this file
 ```
 
@@ -125,6 +164,16 @@ property, e.g. `$<INSTALL_INTERFACE:...>`, evaluate empty during build - fine.)
 This also gives services core's public include dir and, transitively, the nlohmann_json
 include (json include is added PUBLIC to `RMAP` at the top level).
 
+**A service with real source in subfolders must also add its OWN dirs.** While a service
+was a flat placeholder (one `.cpp` directly in `src/`), quoted includes like
+`#include "pch.h"` resolved relative to the file's own folder, so no self-include-dir was
+needed. Once `RMAP_Svc_SB` gained files in `src/base/`, `src/client/`, etc., those files'
+`#include "pch.h"` (and `"Library.h"`) could no longer find headers sitting in `src/`.
+Fix (applied to `RMAP_Svc_SB`, mirroring core): add
+`${CMAKE_CURRENT_SOURCE_DIR}/include/RMAP_Svc_SB` and `${CMAKE_CURRENT_SOURCE_DIR}/src` as
+PRIVATE include dirs (before the core `$<TARGET_PROPERTY>` entry). When `Rest`/`SocketIO`
+get real subfolder source, add the equivalent self include dirs to them too.
+
 ### KEY DECISION - filters via source_group(TREE), disk-mirrored
 
 Each module's `CMakeLists.txt` calls `source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES
@@ -139,14 +188,105 @@ prefixed style (`Source Files\Base` / `Header Files\...`). If he later wants the
 style, switch to two `source_group(TREE ... PREFIX "Source Files"/"Header Files" ...)`
 calls split by extension.
 
-### nlohmann_json
+### Third-party dependencies - the shared fetch/system pattern
 
-`RMAP.h` exposes `nlohmann::ordered_json` in its public API. Option `RMAP_USE_SYSTEM_JSON`
-(OFF default): OFF fetches the header-only lib from git at **build** time (v3.11.3, via
-`ExternalProject_Add`) into `RMAP/third_party/json/` (not committed; `RMAP` depends on the
-`nlohmann_json_fetch` target and gets `$<BUILD_INTERFACE:.../json/include>` PUBLIC). ON
-uses `find_package(nlohmann_json 3.11.3 CONFIG REQUIRED)` + links
-`nlohmann_json::nlohmann_json`. Modeled on `C:\Dev\OMB\fRMAP\RMAP_Core`.
+All third-party libs follow one pattern in the **top-level** `CMakeLists.txt`: an
+`option(RMAP_USE_SYSTEM_<NAME> ... OFF)`; when OFF, `ExternalProject_Add(<name>_fetch ...)`
+git-clones the (header-only) lib at **build** time into `RMAP/third_party/<name>/` (each
+gitignored, not committed), `add_dependencies(RMAP <name>_fetch)`, and adds the lib's
+include dir to `RMAP` as `$<BUILD_INTERFACE:...>` PUBLIC; when ON, `find_package(<name>
+<ver> CONFIG REQUIRED)` + `target_link_libraries(RMAP PUBLIC <name>::<name>)`. The
+`if(EXISTS "${dir}/.git")` guard in each block passes empty git args when the source is
+already present (skip re-download). Three **header-only** libs are wired this way:
+nlohmann_json, asio, websocketpp. All three include dirs are PUBLIC on `RMAP`, so the
+service OBJECT libraries see them transitively via
+`$<TARGET_PROPERTY:RMAP,INTERFACE_INCLUDE_DIRECTORIES>`. A fourth lib, **BoringSSL, is
+COMPILED** (not header-only) and therefore uses a different, heavier block - see its
+subsection below.
+
+**nlohmann_json.** `RMAP.h` exposes `nlohmann::ordered_json` in its public API. Option
+`RMAP_USE_SYSTEM_JSON` (OFF). OFF fetches v3.11.3 (tag `v3.11.3`) into
+`RMAP/third_party/json/`; include dir `$<BUILD_INTERFACE:.../json/include>`. ON:
+`find_package(nlohmann_json 3.11.3 CONFIG REQUIRED)` + `nlohmann_json::nlohmann_json`.
+Modeled on `C:\Dev\OMB\fRMAP\RMAP_Core`.
+
+**asio (standalone).** Option `RMAP_USE_SYSTEM_ASIO` (OFF). OFF fetches
+`https://github.com/chriskohlhoff/asio.git` at tag **`asio-1-30-2`** (asio's dash format
+for 1.30.2) into `RMAP/third_party/asio/`. Include dir is **`.../asio/asio/include`** -
+note the doubled `asio/` because asio nests its headers under an `asio/` subfolder at that
+tag (verified: `asio.hpp` lives at `asio/include/asio.hpp`; there is no top-level `include/`
+at 1.30.2, only on newer master). `target_compile_definitions(RMAP PUBLIC ASIO_STANDALONE)`
+forces the non-Boost header-only asio (added at DavidSr's explicit request). ON:
+`find_package(asio 1.30.2 CONFIG REQUIRED)` + `asio::asio` - **caveat:** upstream asio ships
+NO CMake config/target, so the ON path only works when asio comes from vcpkg/Conan (which
+export `asio::asio`); the OFF fetch path is the self-contained default.
+
+**websocketpp.** Option `RMAP_USE_SYSTEM_WEBSOCKETPP` (OFF). Header-only, layers on top of
+asio; used by `RMAP_Svc_SB/src/client/Net.cpp` (`<websocketpp/config/asio_client.hpp>`).
+OFF fetches `https://github.com/zaphoyd/websocketpp.git` at tag **`0.8.2`** (no prefix)
+into `RMAP/third_party/websocketpp/`. Include dir is the **clone root itself**
+(`$<BUILD_INTERFACE:${RMAP_WEBSOCKETPP_DIR}>`) because headers are included as
+`<websocketpp/...>` and live under `<root>/websocketpp/`. `target_compile_definitions(RMAP
+PUBLIC _WEBSOCKETPP_CPP11_STL_)` makes websocketpp use the C++11 std library instead of
+Boost (without it the build fails on `boost/version.hpp`) - the analog of `ASIO_STANDALONE`.
+ON: `find_package(websocketpp 0.8.2 CONFIG REQUIRED)` + `websocketpp::websocketpp` - same
+package-manager caveat as asio (upstream ships `websocketpp-config.cmake.in` but the
+imported target is reliably provided only via vcpkg/Conan).
+
+**BoringSSL (COMPILED - the odd one out).** Option `RMAP_USE_SYSTEM_BORINGSSL` (OFF).
+Unlike the three header-only libs, BoringSSL must be **built** into static `libcrypto`/
+`libssl` and linked. Tracks `https://github.com/google/boringssl.git` at tag **`main`**
+(unpinned) to **match the version Sneeze uses** - DavidSr's choice; the authoritative
+reference is `C:\Dev\OMB\Sneeze\deps\boringssl.cmake` (Sneeze's per-dep files are the
+single source of truth for its dep versions/flags). The block (guarded by
+`if(NOT RMAP_USE_SYSTEM_BORINGSSL)`):
+- `ExternalProject_Add(boringssl_build ...)` with a real CMake configure+build+install
+  (NOT the empty commands the header-only fetches use). `CMAKE_ARGS`:
+  `-DCMAKE_INSTALL_PREFIX=${RMAP_BORINGSSL_PREFIX}` (where PREFIX =
+  `${CMAKE_CURRENT_BINARY_DIR}/boringssl/$<CONFIG>`), `-DBUILD_SHARED_LIBS=OFF`,
+  `-DCMAKE_BUILD_TYPE=$<CONFIG>`, **`-DBUILD_TESTING=OFF`** (critical: without it BoringSSL
+  compiles its whole test suite - `crypto_test.cc` alone hangs MSVC for ~10+ min; BoringSSL
+  guards its test targets with `if(BUILD_TESTING)` so this cleanly skips them). Explicit
+  `BUILD_COMMAND`/`INSTALL_COMMAND` pass `--config $<CONFIG>`.
+- **`$<CONFIG>` genex placement matters:** it is only used in fields that expand it -
+  `CMAKE_ARGS`, `BUILD_BYPRODUCTS`, target properties, and the `--config` flags - NOT in
+  ExternalProject's `SOURCE_DIR`/`BINARY_DIR`/`INSTALL_DIR` directory args (those do not
+  expand genexes; putting it there yields a literal `$<CONFIG>` folder). `SOURCE_DIR` =
+  `RMAP/third_party/boringssl`, `BINARY_DIR` = `${CMAKE_CURRENT_BINARY_DIR}/boringssl/build`.
+- **Uses the parent generator** (portable): no `-G` override, so MSBuild on Windows,
+  Make/Ninja on Linux/Mac. DavidSr chose this over forcing Ninja.
+- **NASM (Windows):** BoringSSL's CMake does `enable_language(ASM_NASM)` without probing;
+  the block `find_program(NASM_EXECUTABLE nasm HINTS %LOCALAPPDATA%/bin/NASM, %ProgramFiles%
+  /NASM, ...)` and forwards `-DCMAKE_ASM_NASM_COMPILER=` if found (copied from Sneeze; winget
+  drops nasm under `%LOCALAPPDATA%/bin/NASM`, not on PATH). This machine has NASM 3.01.
+- **Linkage = PRIVATE (DavidSr chose "internal"):** `target_link_libraries(RMAP PRIVATE
+  <ssl> <crypto>)` plus platform system libs (`ws2_32 crypt32` on Windows; `pthread dl` on
+  Linux). PRIVATE keeps BoringSSL OUT of RMAP's `install(EXPORT)` set. Consequence: because
+  `RMAP.lib` is a **static** archive, it cannot absorb BoringSSL, and PRIVATE means it is
+  NOT propagated - a final executable/test linking `RMAP::RMAP` must ALSO link BoringSSL
+  itself. Accepted trade-off for "internal".
+- **Header visibility:** the BoringSSL include dir is added to `RMAP` as **build-only PUBLIC**
+  (`$<BUILD_INTERFACE:${RMAP_BORINGSSL_PREFIX}/include>`) so the service OBJECT libs can
+  compile against `<openssl/...>` (they read RMAP's INTERFACE include dirs), while
+  `$<BUILD_INTERFACE>` keeps it out of the installed/exported interface. This is the key
+  reason include is PUBLIC but link is PRIVATE.
+- Build prereqs: Go (have 1.26.2) + C/C++ compiler + NASM on Windows x86/x64. Perl NOT
+  needed (modern BoringSSL uses Go for asm generation). Verified: clean clone/configure/
+  build/install succeeds and RMAP resolves the headers.
+
+### KEY DECISION - services must depend on the fetch/build targets (clean-build ordering)
+
+Only `RMAP` depends on the `*_fetch` targets, but the service OBJECT libraries compile
+**before** `RMAP` (their objects fold into it via `$<TARGET_OBJECTS>`) and are the code
+that actually `#include`s the fetched headers. On a **clean** build a service could compile
+before its headers finished cloning -> `C1083`. Fix (top-level, after the fetch/build
+blocks): loop over `RMAP_Svc_SB/Rest/SocketIO` and, for each that exists, `add_dependencies`
+on each existing dep target (`nlohmann_json_fetch`, `asio_fetch`, `websocketpp_fetch`, and
+`boringssl_build` - the last so services wait for BoringSSL's installed headers too).
+Verified: after deleting both `build/` and `RMAP/third_party/`, a cold configure+build
+fetches all three and compiles services with no header/`not a git repository`/`MSB8066`
+errors. (The `not a git repository` error seen during testing was a false alarm from
+deleting only the source dirs while leaving ExternalProject's download stamps in `build/`.)
 
 ### Install / find_package (top-level, unchanged by the restructure)
 
@@ -162,8 +302,15 @@ uses `find_package(nlohmann_json 3.11.3 CONFIG REQUIRED)` + links
 Core (and each service, for symmetry/future real code) applies under `if(MSVC)`:
 `UNICODE _UNICODE _LIB` (PRIVATE), `/permissive- /sdl /W3`. Core additionally sets
 `INTERPROCEDURAL_OPTIMIZATION_RELEASE ON`. Core uses PCH
-(`target_precompile_headers(RMAP PRIVATE src/pch.h)`); services have **no PCH** yet
-(placeholders have no `pch.h`) - add per-service PCH matching core when real code lands.
+(`target_precompile_headers(RMAP PRIVATE src/pch.h)`). **`RMAP_Svc_SB` now also uses PCH**
+(`target_precompile_headers(RMAP_Svc_SB PRIVATE src/pch.h)`, placed after the `if(MSVC)`
+block, before `source_group` - matching core) since real SB code with a `pch` pair
+landed. Note: CMake force-includes the PCH header into every TU on MSVC (`/FI` via the
+generated `cmake_pch`), so sources need not manually `#include "pch.h"` (16 of the SB
+`.cpp`s do anyway; the include guard makes that harmless, and `RMAP_Svc_SB.cpp` which does
+not include it still compiles fine). `RMAP_Svc_Rest` and `RMAP_Svc_SocketIO` still have
+**no PCH** (placeholders have no `pch.h`) - add per-service PCH matching core when real
+code lands there too.
 
 ## Build & Verify
 
@@ -253,9 +400,33 @@ NOT restored.
 
 ## Open Questions / Next Steps
 
-- Real service source: `RMAP_Svc_SB/Rest/SocketIO` are still one-line placeholders.
-  When real code lands, add per-service PCH matching core, and add each service's
-  external dependencies (`find_package`/`target_link_libraries`) in its `CMakeLists.txt`.
+- **SB compile blocker (source migration, DavidSr-owned):** the SB CMake config is now
+  fully working (configure/generate succeed, `pch.h` and other `src/` headers resolve from
+  every subfolder). The remaining blocker is stale old-codebase symbols in the SB source:
+  the `MV::` namespace, `MVMF`/`MVSB`, and `SB_*`-era class names (`SB_OBJECT`, `REFERENCE`,
+  `FACTORY`, `MAP`, `PLUGIN`, `ITIME`/`xTIME`, `LIBRARY`) seen as compile errors in
+  `src/Library.h` and `src/base/Source_SB_Object.cpp`. These must be migrated to the
+  RMAP-era equivalents - NOT wired as external deps. DavidSr is doing this himself; he has
+  already fixed the `pch.h` includes and renamed `LibraryMVSB.*` -> `Library.*`. Verify
+  progress with `cmake --build build --target RMAP_Svc_SB --config Release`.
+- **BoringSSL x wincrypt.h macro collision (source/include-level, DavidSr-owned):** with
+  BoringSSL now compiling into SB, TUs that include both `<openssl/...>` and `<windows.h>`
+  (the latter pulled transitively by asio in `RMAP_Svc_SB/src/pch.h`) fail to compile:
+  `<wincrypt.h>` `#define`s `X509_NAME`, `PKCS7`, `OCSP_RESPONSE`, etc. as macros that clash
+  with BoringSSL's identically-named types (errors like `'LPCSTR': redefinition` /
+  `X509_name_st differs in levels of indirection` in `openssl/base.h`, `x509.h`, `pkcs7.h`).
+  This is NOT a CMake-wiring problem (headers resolve fine); it is about include ordering /
+  Windows macros. Standard fixes: (1) define `WIN32_LEAN_AND_MEAN` and `NOCRYPT` before any
+  `<windows.h>` include (e.g. top of SB `pch.h`, before asio) - `NOCRYPT` stops `<wincrypt.h>`
+  being pulled, removing the colliding macros, viable only if SB doesn't use wincrypt/Schannel
+  APIs; or (2) include BoringSSL headers before `<windows.h>`/asio, or `#undef` the specific
+  colliding macros. Could be done as a compile definition
+  (`target_compile_definitions(RMAP_Svc_SB PRIVATE WIN32_LEAN_AND_MEAN NOCRYPT)`) - offered
+  to DavidSr, not yet applied (it changes Windows header behavior for all of SB).
+- Real service source: `RMAP_Svc_Rest` and `RMAP_Svc_SocketIO` are still one-line
+  placeholders. When real code lands, add per-service PCH matching core, and add each
+  service's genuine external dependencies (`find_package`/`target_link_libraries`) in its
+  `CMakeLists.txt`.
 - Define the concrete responsibilities and public APIs of each service (SB / Rest /
   SocketIO). Currently inferred, not verified.
 - Cross-platform is designed but only verified on MSVC/Windows. Verify on Linux
@@ -280,3 +451,63 @@ NOT restored.
   cycle. Verified: 4 module projects generated with filters, one `RMAP.lib` containing all
   service symbols, and `RMAP_BUILD_SVC_REST=OFF` drops that project. Updated `README.md`
   (repo layout + multi-project note) and this resume point.
+- 2026-07-24 (DavidSr): Added real source to `RMAP_Svc_SB` (19 files across `src\base`,
+  `src\client`, `src\model`, `src\source`, `src` root, plus a `pch` pair). Expanded
+  `RMAP_Svc_SB_FILES` in that module's `CMakeLists.txt` to list all of them (ordered to
+  mirror core: public header, then src subfolders, then src root, `pch` last); the existing
+  `source_group(TREE)` line auto-generated the VS filters (verified in the regenerated
+  `RMAP_Svc_SB.vcxproj.filters`: `src\base`, `src\client`, `src\model`, `src\source`, `src`,
+  `include\RMAP_Svc_SB`). Then enabled PCH for the module
+  (`target_precompile_headers(RMAP_Svc_SB PRIVATE src/pch.h)`, matching core). Configure
+  succeeds; a `RMAP_Svc_SB`-only build confirmed PCH is active (MSVC compiled the generated
+  `cmake_pch.cxx`) but stops at `C1083` on `MVMF.h`. DavidSr clarified MVMF/MVSB no longer
+  exist (replaced by RMAP core / RMAP_Svc_SB), so the fix is to update the stale `pch.h`
+  includes rather than wire external deps - captured as the SB compile blocker in Open
+  Questions; the actual `pch.h` edit was NOT yet made (awaiting direction on rename scope).
+- 2026-07-24 (DavidSr, later): DavidSr took over the SB source migration ("let ME fix it").
+  He fixed the `pch.h` MVMF/MVSB includes, renamed `LibraryMVSB.cpp/.h` -> `Library.cpp/.h`,
+  and deleted the old `src/RMAP_Svc_SB.cpp` placeholder. Agent kept the SB `CMakeLists.txt`
+  in sync with disk across these changes: updated the `LibraryMVSB` entries to `Library`,
+  then removed the deleted `RMAP_Svc_SB.cpp` from `RMAP_Svc_SB_FILES` (configure was failing
+  with "Cannot find source file: src/RMAP_Svc_SB.cpp"). Then fixed a `pch.h`-not-found error
+  reported for `src/base/Source_SB_Object.cpp`: root cause was SB's `CMakeLists.txt` never
+  adding its own `src` to the include path (core does), so quoted includes from subfolders
+  (`base/`, `client/`, ...) failed. Added PRIVATE `include/RMAP_Svc_SB` + `src` include dirs
+  mirroring core. Verified: configure/generate succeed and no more `C1083`/`pch.h` errors;
+  the build now advances into real compilation and fails only on stale `MVMF`/`MV::`/`SB_*`
+  source symbols (DavidSr's migration, still in progress). Lesson learned: the Glob tool
+  listed git-tracked-but-deleted files (e.g. `RMAP_Svc_SB.cpp`) with forward slashes; a real
+  disk listing via `Get-ChildItem` was needed to confirm actual on-disk state.
+- 2026-07-24 (DavidSr): Added two more third-party libs mirroring the nlohmann_json pattern
+  in the top-level `CMakeLists.txt`. **asio** 1.30.2 (`RMAP_USE_SYSTEM_ASIO`, tag
+  `asio-1-30-2`, include `.../asio/asio/include`, `ASIO_STANDALONE` PUBLIC define added at
+  DavidSr's request). **websocketpp** 0.8.2 (`RMAP_USE_SYSTEM_WEBSOCKETPP`, tag `0.8.2`,
+  include = clone root, `_WEBSOCKETPP_CPP11_STL_` PUBLIC define so it uses the C++11 stdlib
+  not Boost). Verified tags/paths against GitHub before writing (asio nests headers under
+  `asio/`; websocketpp includes as `<websocketpp/...>` from the clone root). Added
+  `.gitignore` entries for both. Discovered and fixed a latent clean-build ordering race:
+  the service OBJECT libs compile before `RMAP` (which owns the fetch deps) yet consume the
+  fetched headers, so a service could build before the clone finished -> added a loop making
+  each enabled service depend on each active `*_fetch` target. Verified from a fully cold
+  state (deleted `build/` + `RMAP/third_party/`): all three fetch, no header/git/MSB8066
+  errors; the only remaining SB build failure is DavidSr's in-progress `MV::` source
+  migration.
+- 2026-07-24 (DavidSr): Added **BoringSSL** as a fourth third-party lib, but COMPILED (not
+  header-only). Established up front that it can't be "added the same way" - it must be built
+  and linked. DavidSr chose: version = whatever Sneeze uses (-> tracks `main`, per
+  `C:\Dev\OMB\Sneeze\deps\boringssl.cmake`), linkage = internal/PRIVATE, generator = inherit
+  parent (portable). Verified toolchain: Go 1.26.2, CMake 3.30.3, MSVC, NASM 3.01 present;
+  Ninja/Perl absent but not needed. Implemented an `ExternalProject_Add(boringssl_build)`
+  that clones google/boringssl@main, configures with `-DBUILD_SHARED_LIBS=OFF
+  -DCMAKE_BUILD_TYPE=$<CONFIG> -DBUILD_TESTING=OFF` (+ NASM path on Windows), builds/installs
+  per `$<CONFIG>`, and links PRIVATE into RMAP with build-only PUBLIC include; added
+  `ws2_32`/`crypt32` (Win) and `pthread`/`dl` (Linux); added `boringssl_build` to the
+  service dependency loop; gitignored `/RMAP/third_party/boringssl/`. First build hung ~19
+  min compiling BoringSSL's full test suite - fixed by adding `-DBUILD_TESTING=OFF` (verified
+  BoringSSL guards tests with `if(BUILD_TESTING)`); after that BoringSSL builds/installs fast
+  and RMAP resolves its headers. New blocker surfaced (logged in Open Questions): the
+  BoringSSL x `<wincrypt.h>` macro collision (`X509_NAME`/`PKCS7`/`LPCSTR`) in SB TUs that
+  also pull `<windows.h>` via asio - a source/include-ordering issue, DavidSr-owned; the
+  `NOCRYPT`/`WIN32_LEAN_AND_MEAN` fix was offered but not yet applied. Lesson: `$<CONFIG>`
+  genexes work in ExternalProject `CMAKE_ARGS`/`BUILD_BYPRODUCTS`/`--config`/target props but
+  NOT in its `SOURCE_DIR`/`BINARY_DIR`/`INSTALL_DIR` dir args.

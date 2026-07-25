@@ -32,7 +32,7 @@ namespace RMAP
 {
    namespace CORE
    {
-      class RMAP_CORE_API LNG : public NOTIFICATION
+      class LNG : public NOTIFICATION
       {
       public:
          enum eSTATE
@@ -79,7 +79,7 @@ namespace RMAP
       **                                                 MODEL_OBJECT                                                               **
       *******************************************************************************************************************************/
 
-      class RMAP_CORE_API MODEL_OBJECT : public MEM::MODEL
+      class MODEL_OBJECT : public MEM::MODEL
       {
       public:
          MODEL_OBJECT (MEM::MODEL::IREFERENCE* pReference, MEM::SOURCE* pSource);
@@ -134,17 +134,17 @@ namespace RMAP
       **                                                 PACKAGE                                                                    **
       *******************************************************************************************************************************/
 
-      class RMAP_CORE_API PACKAGE
+      class PACKAGE
       {
       public:
-         class RMAP_CORE_API PACKAGEPARAM
+         class PACKAGEPARAM
          {
          public:
             PACKAGEPARAM ();
             virtual ~PACKAGEPARAM ();
          };
 
-         class RMAP_CORE_API IREFERENCE : public RMAP::CORE::IREFERENCE<PACKAGE*, PACKAGEPARAM*>
+         class IREFERENCE : public RMAP::CORE::IREFERENCE<PACKAGE*, PACKAGEPARAM*>
          {
          public:
             IREFERENCE (const std::string& sID, const std::string& sNamespace, const std::vector<std::string>& aService, const std::vector<std::string>& aModel, const std::vector<std::string>& aSource);
@@ -165,7 +165,7 @@ namespace RMAP
          };
 
       public:
-         class RMAP_CORE_API FACTORY : public RMAP::CORE::FACTORY
+         class FACTORY : public RMAP::CORE::FACTORY
          {
          public:
             FACTORY (const std::string& sID_Service, const std::string& sID_Package, const std::vector<std::string>& aService, const std::vector<std::string>& aModel, const std::vector<std::string>& aSource);
@@ -206,7 +206,7 @@ namespace RMAP
          Impl* m_pImpl;
       };
 
-      class RMAP_CORE_API PLUGIN
+      class PLUGIN
       {
       public:
          class IREFERENCE : public RMAP::CORE::IREFERENCE<PLUGIN*, LIBRARY*>
