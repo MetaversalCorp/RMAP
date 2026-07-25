@@ -7,7 +7,10 @@
 # ---------------------------------------------------------------------------
 
 set(RMAP_Svc_SB_FILES
+   include/RMAP_Svc_SB/ClassTypes.h
+   include/RMAP_Svc_SB/Client.h
    include/RMAP_Svc_SB/RMAP_Svc_SB.h
+   include/RMAP_Svc_SB/Source.h
    src/base/Source_SB_Object.cpp
    src/base/Source_SB_Session.cpp
    src/client/Client.cpp

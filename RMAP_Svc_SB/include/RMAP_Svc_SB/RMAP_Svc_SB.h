@@ -355,8 +355,8 @@ namespace RMAP
    }
 }
 
-#include "MVSB_Client.h"
-#include "MVSB_Source.h"
-#include "MVSB_ClassTypes.h"
+#include "Client.h"
+#include "Source.h"
+#include "ClassTypes.h"
 
 #endif //MV_MVSB_H
