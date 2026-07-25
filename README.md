@@ -39,8 +39,8 @@ RMAP/
     include/RMAP_Svc_SB/   Public header
     src/                   Implementation + private headers (+ pch.h), organized into
                            base/ client/ model/ source/ subfolders
-  RMAP_Svc_Rest/           REST service module (same structure)
-  RMAP_Svc_SocketIO/       SocketIO service module (same structure)
+  RMAP_Svc_Rest/           REST service module (same layout; flat src/, no subfolders)
+  RMAP_Svc_SocketIO/       SocketIO service module (same layout; flat src/, no subfolders)
 ```
 
 Each module has its own `CMakeLists.txt`, so the generated Visual Studio solution
