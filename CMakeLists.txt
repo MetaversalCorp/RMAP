@@ -28,6 +28,7 @@ option(RMAP_USE_SYSTEM_JSON "Use an external nlohmann_json (find_package) instea
 option(RMAP_USE_SYSTEM_ASIO "Use an external asio (find_package) instead of the git-fetched copy" OFF)
 option(RMAP_USE_SYSTEM_WEBSOCKETPP "Use an external websocketpp (find_package) instead of the git-fetched copy" OFF)
 option(RMAP_USE_SYSTEM_BORINGSSL "Use an external BoringSSL (find_package) instead of the git-built copy" OFF)
+option(RMAP_USE_SYSTEM_CURL "Use an external libcurl (find_package) instead of the git-built copy" OFF)
 
 # ---------------------------------------------------------------------------
 # Modules. Each module is its own Visual Studio project:
@@ -264,6 +265,97 @@ if(NOT RMAP_USE_SYSTEM_BORINGSSL)
 endif()
 
 # ---------------------------------------------------------------------------
+# libcurl (COMPILED - not header-only). Pinned to 8.9.1 (tag curl-8_9_1),
+# matching the version Sneeze uses (C:\Dev\OMB\Sneeze\deps\curl.cmake). Built
+# from source into a static libcurl via its own CMake build, using the parent
+# generator. Linked PRIVATE (internal use; kept out of RMAP's exported
+# interface). TLS backend: Windows uses Schannel (the OS stack); other platforms
+# link the BoringSSL built above through curl's OpenSSL-compatible interface.
+# CURL_STATICLIB is required by every TU that includes <curl/curl.h>; it is
+# build-only so it stays out of RMAP's exported interface. The static lib is
+# named libcurl.lib / libcurl-d.lib on Windows (curl's -d debug postfix),
+# libcurl.a elsewhere - confirmed against Sneeze's on-disk build.
+# ---------------------------------------------------------------------------
+
+if(NOT RMAP_USE_SYSTEM_CURL)
+   include(ExternalProject)
+
+   set(RMAP_CURL_DIR    "${CMAKE_CURRENT_SOURCE_DIR}/RMAP/third_party/curl")
+   set(RMAP_CURL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/curl/$<CONFIG>")
+   if(WIN32)
+      set(RMAP_CURL_LIB "${RMAP_CURL_PREFIX}/lib/libcurl$<$<CONFIG:Debug>:-d>${CMAKE_STATIC_LIBRARY_SUFFIX}")
+   else()
+      set(RMAP_CURL_LIB "${RMAP_CURL_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}curl${CMAKE_STATIC_LIBRARY_SUFFIX}")
+   endif()
+
+   if(EXISTS "${RMAP_CURL_DIR}/.git")
+      set(_curl_git_args)
+   else()
+      set(_curl_git_args
+         GIT_REPOSITORY https://github.com/curl/curl.git
+         GIT_TAG        curl-8_9_1
+         GIT_SHALLOW    ON)
+   endif()
+
+   # TLS backend: Windows uses Schannel (OS stack); other platforms link the
+   # BoringSSL built above via curl's OpenSSL-compatible interface.
+   if(WIN32)
+      set(_curl_ssl_args -DCURL_USE_SCHANNEL=ON -DCURL_USE_OPENSSL=OFF)
+   else()
+      set(_curl_ssl_args
+         -DCURL_USE_OPENSSL=ON
+         -DCURL_USE_SCHANNEL=OFF
+         -DOPENSSL_ROOT_DIR=${RMAP_BORINGSSL_PREFIX}
+         -DOPENSSL_USE_STATIC_LIBS=TRUE
+         -DOPENSSL_INCLUDE_DIR=${RMAP_BORINGSSL_PREFIX}/include
+         -DOPENSSL_CRYPTO_LIBRARY=${RMAP_BORINGSSL_CRYPTO_LIB}
+         -DOPENSSL_SSL_LIBRARY=${RMAP_BORINGSSL_SSL_LIB})
+   endif()
+
+   ExternalProject_Add(curl_build
+      ${_curl_git_args}
+      SOURCE_DIR "${RMAP_CURL_DIR}"
+      BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/curl/build"
+      CMAKE_ARGS
+         -DCMAKE_INSTALL_PREFIX=${RMAP_CURL_PREFIX}
+         -DCMAKE_BUILD_TYPE=$<CONFIG>
+         -DBUILD_SHARED_LIBS=OFF
+         -DBUILD_CURL_EXE=OFF
+         -DBUILD_TESTING=OFF
+         -DCURL_DISABLE_LDAP=ON
+         -DCURL_DISABLE_LDAPS=ON
+         -DUSE_LIBIDN2=OFF
+         -DCURL_USE_LIBPSL=OFF
+         -DCURL_USE_LIBSSH2=OFF
+         -DCURL_ZLIB=OFF
+         -DCURL_BROTLI=OFF
+         -DCURL_ZSTD=OFF
+         ${_curl_ssl_args}
+      BUILD_COMMAND   ${CMAKE_COMMAND} --build   <BINARY_DIR> --config $<CONFIG>
+      INSTALL_COMMAND ${CMAKE_COMMAND} --install <BINARY_DIR> --config $<CONFIG>
+      BUILD_BYPRODUCTS "${RMAP_CURL_LIB}")
+
+   # curl links BoringSSL as its TLS backend off Windows; build BoringSSL first.
+   if(NOT WIN32  AND  TARGET boringssl_build)
+      add_dependencies(curl_build boringssl_build)
+   endif()
+
+   add_dependencies(RMAP curl_build)
+
+   target_include_directories(RMAP PUBLIC
+      $<BUILD_INTERFACE:${RMAP_CURL_PREFIX}/include>)
+
+   # Every TU including <curl/curl.h> needs this for a static libcurl. Build-only
+   # so it stays out of RMAP's exported interface.
+   target_compile_definitions(RMAP PUBLIC $<BUILD_INTERFACE:CURL_STATICLIB>)
+
+   target_link_libraries(RMAP PRIVATE "${RMAP_CURL_LIB}")
+   if(WIN32)
+      target_link_libraries(RMAP PRIVATE ws2_32 wldap32 crypt32 normaliz)
+   endif()
+endif()
+
+# ---------------------------------------------------------------------------
 # Fetched third-party headers are pulled at build time by ExternalProject and
 # consumed transitively (via RMAP's include dirs) by the service OBJECT
 # libraries, which compile BEFORE RMAP (their objects fold into it). Only RMAP
@@ -274,7 +366,7 @@ endif()
 
 foreach(_svc RMAP_Svc_SB RMAP_Svc_Rest RMAP_Svc_SocketIO)
    if(TARGET ${_svc})
-      foreach(_dep nlohmann_json_fetch asio_fetch websocketpp_fetch boringssl_build)
+      foreach(_dep nlohmann_json_fetch asio_fetch websocketpp_fetch boringssl_build curl_build)
          if(TARGET ${_dep})
             add_dependencies(${_svc} ${_dep})
          endif()

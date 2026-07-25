@@ -65,5 +65,26 @@ std::string LIBRARY::sVersion () const
    return m_pImpl->m_sVersion;
 }
 
+bool LIBRARY::GetVDParam (intptr_t pVD, intptr_t nVDParam)
+{
+   return ((pVD & nVDParam) != 0);
+}
+
+intptr_t LIBRARY::SetVDParam (bool bVoluntary, bool bConnected, bool bDisconnected)
+{
+   intptr_t nResult = 0;
+
+   if (bVoluntary)
+      nResult |= MV_VDPARAM_VOLUNTARY;
+
+   if (bConnected)
+      nResult |= MV_VDPARAM_CONNECTED;
+
+   if (bDisconnected)
+      nResult |= MV_VDPARAM_DISCONNECTED;
+
+   return nResult;
+}
+
 
 /******************************************************************************************************************************/

@@ -24,6 +24,9 @@ x64/
 # BoringSSL fetched + built from git at build time (not committed)
 /RMAP/third_party/boringssl/
 
+# libcurl fetched + built from git at build time (not committed)
+/RMAP/third_party/curl/
+
 # IDE / editor
 *.user
 .vs/

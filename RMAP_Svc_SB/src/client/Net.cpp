@@ -305,7 +305,7 @@ public:
       eSTATE kStateOld = SetState (eSTATE::NOTCONNECTED);
 
       if (m_pIControl != NULL)
-         m_pIControl->SocketDisconnect_Complete ((int)SetVDParam (m_bVoluntary, false, m_bDisconnected));
+         m_pIControl->SocketDisconnect_Complete ((int)RMAP::CORE::LIBRARY::SetVDParam (m_bVoluntary, false, m_bDisconnected));
 
       if (kStateOld > eSTATE::CONNECTING)
          pINet->onDisconnected ();
@@ -473,7 +473,7 @@ void NET::connection_metadata::on_open (client* c, websocketpp::connection_hdl h
 
    m_pImpl->SetState (eSTATE::CONNECTED);
 
-   m_pImpl->m_pIControl->SocketConnect_Complete ((int)SetVDParam (m_pImpl->m_bVoluntary, true, false));
+   m_pImpl->m_pIControl->SocketConnect_Complete ((int)RMAP::CORE::LIBRARY::SetVDParam (m_pImpl->m_bVoluntary, true, false));
 
    m_pImpl->pINet->onConnected ();
 }

@@ -31,9 +31,10 @@ NOT depend on each other. SB appears to be a byte-stream/socket protocol backend
 REST backend, SocketIO a Socket.IO backend. The **core contains real implementation
 source** (see inventory). **`RMAP_Svc_SB` now also contains real source** (added by
 DavidSr this session - `base/`, `client/`, `model/`, `source/` subtrees plus `src` root
-files and a `pch` pair); it is no longer a placeholder. `RMAP_Svc_Rest` and
-`RMAP_Svc_SocketIO` are still one-line placeholders (a `Svc_*_GetName()` accessor each)
-awaiting real code.
+files and a `pch` pair); it is no longer a placeholder. **`RMAP_Svc_Rest` now also
+contains real source** (added by DavidSr in this 2026-07-24 session - a flat `src/` tree
+plus a `pch` pair; no subfolders yet). `RMAP_Svc_SocketIO` is the only remaining one-line
+placeholder (a `Svc_SocketIO_GetName()` accessor) awaiting real code.
 
 ### Legacy naming - MVMF / MVSB are gone (replaced by RMAP / RMAP_Svc_SB)
 
@@ -60,8 +61,12 @@ Visual Studio solution** (one project per module) that produces a single `RMAP.l
 Verified building on MSVC. **`RMAP_Svc_SB` now has real source and PCH enabled**; its
 **CMake config is fully working** (configure + generate succeed, `pch.h` resolves) but the
 module does not yet fully compile because DavidSr's source migration off the `MVMF`/`MVSB`/
-`MV::`/`SB_*` names is still in progress (see below). `RMAP_Svc_Rest` and
-`RMAP_Svc_SocketIO` remain placeholders.
+`MV::`/`SB_*` names is still in progress (see below). **`RMAP_Svc_Rest` also now has real
+source and PCH enabled** (CMake fully working) but has the same pending MV::-era migration
+(its `pch.h`/`LibraryMVRest.*` still use legacy `MVMF`/`MVRest` names). `RMAP_Svc_SocketIO`
+remains a placeholder. Also this session: added libcurl as a fifth third-party lib
+(compiled, TLS via Schannel on Windows / BoringSSL elsewhere) and renamed three SB public
+headers (`MVSB_*` -> `ClassTypes.h`/`Client.h`/`Source.h`).
 
 Everything committed on disk was clean before the CMake restructure. Git history is two
 commits, both literally titled "Initial commit" / "Initial Commit" - `9434f77`
@@ -75,12 +80,13 @@ and all the new `RMAP_Svc_SB` source are new/untracked or modified and not yet c
 ```
 C:\Dev\OMB\RMAP\
   CMakeLists.txt                 top-level: project(), options, add_subdirectory each module,
-                                 folds service objects into RMAP, third-party fetch blocks
-                                 (nlohmann_json + asio + websocketpp), service->fetch
+                                 folds service objects into RMAP, third-party blocks
+                                 (nlohmann_json + asio + websocketpp header-only fetches;
+                                 BoringSSL + libcurl compiled builds), service->fetch/build
                                  dependency loop, install/export
   CMakePresets.json              "vs2022" configure preset + vs2022-debug/-release build presets
   cmake\RMAPConfig.cmake.in      find_package(RMAP) package config template
-  .gitignore                     ignores build output + CMake artifacts + third_party/{json,asio,websocketpp,boringssl}
+  .gitignore                     ignores build output + CMake artifacts + third_party/{json,asio,websocketpp,boringssl,curl}
   LICENSE, README.md
   RMAP\                          core module (always built) -> the RMAP.lib STATIC target
     CMakeLists.txt               core project: RMAP_FILES list, STATIC lib, PCH, source_group
@@ -93,13 +99,21 @@ C:\Dev\OMB\RMAP\
        model\   Model_Session_C2a.cpp Model_Session_Null.cpp Model_Session_UiP.cpp
        (root)   Library.cpp LibraryRMAP.cpp/.h Collection.h SharedObject.h LnG.cpp Logger.cpp
                 Package.cpp Plugin.cpp Registry.cpp Utils.cpp pch.cpp pch.h
-    third_party\json\            nlohmann_json, git-fetched at BUILD time (not committed)
+    third_party\                 all git-fetched/built at BUILD time (not committed):
+       json\        nlohmann_json (header-only)
+       asio\        asio (header-only, standalone)
+       websocketpp\ websocketpp (header-only)
+       boringssl\   BoringSSL (compiled -> static libcrypto/libssl)
+       curl\        libcurl (compiled -> static libcurl)
   RMAP_Svc_SB\                   NO LONGER A PLACEHOLDER - real source added this session
     CMakeLists.txt               service project: OBJECT lib, full RMAP_Svc_SB_FILES list,
                                  PRIVATE include dirs (include/RMAP_Svc_SB + src +
                                  core's INTERFACE_INCLUDE_DIRECTORIES), PCH
                                  (target_precompile_headers ... src/pch.h), source_group
-    include\RMAP_Svc_SB\RMAP_Svc_SB.h    public header, declares RMAP::Svc_SB_GetName()
+    include\RMAP_Svc_SB\         public headers: RMAP_Svc_SB.h (declares RMAP::Svc_SB_GetName())
+                                 plus ClassTypes.h, Client.h, Source.h (renamed by DavidSr this
+                                 session from MVSB_ClassTypes.h / MVSB_Client.h / MVSB_Source.h;
+                                 all four are listed in RMAP_Svc_SB_FILES so they show in VS)
     src\                         implementation + private headers + pch:
        base\    Source_SB_Object.cpp Source_SB_Session.cpp
        client\  Client.cpp Control.cpp Net.cpp Recover.cpp Refresh.cpp Subscription.cpp
@@ -110,7 +124,15 @@ C:\Dev\OMB\RMAP\
                  src/RMAP_Svc_SB.cpp placeholder holding Svc_SB_GetName() was DELETED by
                  him - so that symbol is now defined elsewhere in the real source or not
                  at all; source still carries stale MVMF/MV::/SB_* symbols - see above)
-  RMAP_Svc_Rest\                 PLACEHOLDER (same structure) declares RMAP::Svc_Rest_GetName()
+  RMAP_Svc_Rest\                 NO LONGER A PLACEHOLDER - real source added this session
+    include\RMAP_Svc_Rest\RMAP_Svc_Rest.h  public header, declares RMAP::Svc_Rest_GetName()
+    src\                         flat implementation tree (no subfolders) + pch:
+       (root)   Client.cpp Control.cpp ICodec.cpp LibraryMVRest.cpp/.h Service.cpp
+                Source_Rest_Object.cpp Source_Rest_Session.cpp Source_Rest_Session_Null.cpp
+                pch.cpp pch.h
+                (old src/RMAP_Svc_Rest.cpp placeholder removed from the file list; LibraryMVRest.*
+                 still carries legacy "MVRest" naming and pch.h still includes <MVMF.h>/<MVRest.h>/
+                 "LibraryMVRest.h" - same MV::-era migration pending as SB, DavidSr-owned)
   RMAP_Svc_SocketIO\             PLACEHOLDER (same structure) declares RMAP::Svc_SocketIO_GetName()
   .cursor\rules\project.mdc      this file
 ```
@@ -171,8 +193,11 @@ needed. Once `RMAP_Svc_SB` gained files in `src/base/`, `src/client/`, etc., tho
 `#include "pch.h"` (and `"Library.h"`) could no longer find headers sitting in `src/`.
 Fix (applied to `RMAP_Svc_SB`, mirroring core): add
 `${CMAKE_CURRENT_SOURCE_DIR}/include/RMAP_Svc_SB` and `${CMAKE_CURRENT_SOURCE_DIR}/src` as
-PRIVATE include dirs (before the core `$<TARGET_PROPERTY>` entry). When `Rest`/`SocketIO`
-get real subfolder source, add the equivalent self include dirs to them too.
+PRIVATE include dirs (before the core `$<TARGET_PROPERTY>` entry). The same self include
+dirs were added to `RMAP_Svc_Rest` this session when it got real source + PCH (even though
+its `src/` is currently flat, the PCH force-include and `#include "pch.h"` still need `src`
+on the include path). When `SocketIO` gets real source, add the equivalent self include
+dirs to it too.
 
 ### KEY DECISION - filters via source_group(TREE), disk-mirrored
 
@@ -200,9 +225,10 @@ include dir to `RMAP` as `$<BUILD_INTERFACE:...>` PUBLIC; when ON, `find_package
 already present (skip re-download). Three **header-only** libs are wired this way:
 nlohmann_json, asio, websocketpp. All three include dirs are PUBLIC on `RMAP`, so the
 service OBJECT libraries see them transitively via
-`$<TARGET_PROPERTY:RMAP,INTERFACE_INCLUDE_DIRECTORIES>`. A fourth lib, **BoringSSL, is
-COMPILED** (not header-only) and therefore uses a different, heavier block - see its
-subsection below.
+`$<TARGET_PROPERTY:RMAP,INTERFACE_INCLUDE_DIRECTORIES>`. Two further libs, **BoringSSL
+and libcurl, are COMPILED** (not header-only) and therefore use a different, heavier
+block (real configure+build+install via ExternalProject, PRIVATE link) - see their
+subsections below.
 
 **nlohmann_json.** `RMAP.h` exposes `nlohmann::ordered_json` in its public API. Option
 `RMAP_USE_SYSTEM_JSON` (OFF). OFF fetches v3.11.3 (tag `v3.11.3`) into
@@ -274,6 +300,56 @@ single source of truth for its dep versions/flags). The block (guarded by
   needed (modern BoringSSL uses Go for asm generation). Verified: clean clone/configure/
   build/install succeeds and RMAP resolves the headers.
 
+**libcurl (COMPILED - the second odd one out).** Option `RMAP_USE_SYSTEM_CURL` (OFF).
+Like BoringSSL it is **built** into a static libcurl and linked. Pinned to **8.9.1**
+(tag `curl-8_9_1`, repo `https://github.com/curl/curl.git`) to **match the version
+Sneeze uses** - DavidSr's instruction; authoritative reference is
+`C:\Dev\OMB\Sneeze\deps\curl.cmake`. Modeled closely on that file. The block (guarded by
+`if(NOT RMAP_USE_SYSTEM_CURL)`), placed right after the BoringSSL block:
+- `ExternalProject_Add(curl_build ...)`: `SOURCE_DIR` = `RMAP/third_party/curl`,
+  `BINARY_DIR` = `${CMAKE_CURRENT_BINARY_DIR}/curl/build`, install PREFIX =
+  `${CMAKE_CURRENT_BINARY_DIR}/curl/$<CONFIG>` (per-config, same `$<CONFIG>` genex
+  discipline as BoringSSL). `CMAKE_ARGS`: `-DCMAKE_INSTALL_PREFIX=<prefix>
+  -DCMAKE_BUILD_TYPE=$<CONFIG> -DBUILD_SHARED_LIBS=OFF -DBUILD_CURL_EXE=OFF
+  -DBUILD_TESTING=OFF` plus a **minimal-feature** set copied from Sneeze:
+  `-DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON -DUSE_LIBIDN2=OFF -DCURL_USE_LIBPSL=OFF
+  -DCURL_USE_LIBSSH2=OFF -DCURL_ZLIB=OFF -DCURL_BROTLI=OFF -DCURL_ZSTD=OFF`. Explicit
+  `BUILD_COMMAND`/`INSTALL_COMMAND` with `--config $<CONFIG>`.
+- **TLS backend is platform-specific (mirrors Sneeze exactly):** on **Windows**, Schannel
+  (`-DCURL_USE_SCHANNEL=ON -DCURL_USE_OPENSSL=OFF`) - the OS TLS stack, so curl does NOT
+  pull BoringSSL on Windows. On **Linux/macOS**, BoringSSL via curl's OpenSSL-compatible
+  interface: `-DCURL_USE_OPENSSL=ON -DCURL_USE_SCHANNEL=OFF -DOPENSSL_ROOT_DIR=
+  ${RMAP_BORINGSSL_PREFIX} -DOPENSSL_USE_STATIC_LIBS=TRUE -DOPENSSL_INCLUDE_DIR=...
+  -DOPENSSL_CRYPTO_LIBRARY=${RMAP_BORINGSSL_CRYPTO_LIB} -DOPENSSL_SSL_LIBRARY=
+  ${RMAP_BORINGSSL_SSL_LIB}` (reuses the BoringSSL RMAP already builds). Off-Windows,
+  `add_dependencies(curl_build boringssl_build)` (guarded by `TARGET boringssl_build`) so
+  BoringSSL is installed before curl configures. CAVEAT: the non-Windows OpenSSL args
+  reference the `RMAP_BORINGSSL_*` vars, which only exist when `RMAP_USE_SYSTEM_BORINGSSL`
+  is OFF; the uncommon combo (non-Windows + system BoringSSL) is not yet guarded.
+- **Static lib filename** differs per platform - determined by INSPECTING Sneeze's on-disk
+  build (`C:\Dev\OMB\Sneeze\deps\builds\windows-x64\{release,debug}\libs\curl\install\lib`),
+  NOT guessed: Windows `libcurl.lib` (Release) / `libcurl-d.lib` (Debug, curl's `-d` debug
+  postfix); Unix `libcurl.a`. Encoded as `BUILD_BYPRODUCTS`/link path with
+  `libcurl$<$<CONFIG:Debug>:-d>${CMAKE_STATIC_LIBRARY_SUFFIX}` on Windows and
+  `${CMAKE_STATIC_LIBRARY_PREFIX}curl${CMAKE_STATIC_LIBRARY_SUFFIX}` elsewhere. (Sneeze's
+  `FindSneezeCurl.cmake` also lists older `libcurl_a`/`libcurl_a-d` names, but 8.9.1's
+  static MSVC build produces plain `libcurl`/`libcurl-d` - confirmed on disk.)
+- **Linkage = PRIVATE** (internal, same rationale as BoringSSL): `target_link_libraries(
+  RMAP PRIVATE <curl lib>)`; on Windows also `ws2_32 wldap32 crypt32 normaliz` (curl's
+  Windows/Schannel system deps, from Sneeze's "curl Windows deps" list). Kept out of the
+  export set; consequence identical to BoringSSL - a final exe linking `RMAP::RMAP` must
+  also link libcurl + those system libs.
+- **Header visibility + CURL_STATICLIB:** curl include dir added build-only PUBLIC
+  (`$<BUILD_INTERFACE:${RMAP_CURL_PREFIX}/include>`) so services can `#include <curl/curl.h>`
+  via RMAP's INTERFACE include dirs. `target_compile_definitions(RMAP PUBLIC
+  $<BUILD_INTERFACE:CURL_STATICLIB>)` - REQUIRED by every TU including `<curl/curl.h>` when
+  linking a static libcurl; wrapped in `$<BUILD_INTERFACE:>` so it does not leak into the
+  exported interface (build-only, like the include dir).
+- **Build prereqs:** just the C/C++ compiler - libcurl adds NO new toolchain requirement
+  beyond BoringSSL's (and on Windows it uses Schannel, so no BoringSSL either). On a clean
+  build curl fetches + compiles from source (a few minutes, like BoringSSL).
+- `curl_build` was added to the service dependency loop (see next section).
+
 ### KEY DECISION - services must depend on the fetch/build targets (clean-build ordering)
 
 Only `RMAP` depends on the `*_fetch` targets, but the service OBJECT libraries compile
@@ -281,8 +357,9 @@ Only `RMAP` depends on the `*_fetch` targets, but the service OBJECT libraries c
 that actually `#include`s the fetched headers. On a **clean** build a service could compile
 before its headers finished cloning -> `C1083`. Fix (top-level, after the fetch/build
 blocks): loop over `RMAP_Svc_SB/Rest/SocketIO` and, for each that exists, `add_dependencies`
-on each existing dep target (`nlohmann_json_fetch`, `asio_fetch`, `websocketpp_fetch`, and
-`boringssl_build` - the last so services wait for BoringSSL's installed headers too).
+on each existing dep target (`nlohmann_json_fetch`, `asio_fetch`, `websocketpp_fetch`,
+`boringssl_build`, and `curl_build` - the last two so services wait for the compiled libs'
+installed headers too).
 Verified: after deleting both `build/` and `RMAP/third_party/`, a cold configure+build
 fetches all three and compiles services with no header/`not a git repository`/`MSB8066`
 errors. (The `not a git repository` error seen during testing was a false alarm from
@@ -308,9 +385,15 @@ block, before `source_group` - matching core) since real SB code with a `pch` pa
 landed. Note: CMake force-includes the PCH header into every TU on MSVC (`/FI` via the
 generated `cmake_pch`), so sources need not manually `#include "pch.h"` (16 of the SB
 `.cpp`s do anyway; the include guard makes that harmless, and `RMAP_Svc_SB.cpp` which does
-not include it still compiles fine). `RMAP_Svc_Rest` and `RMAP_Svc_SocketIO` still have
-**no PCH** (placeholders have no `pch.h`) - add per-service PCH matching core when real
-code lands there too.
+not include it still compiles fine). **`RMAP_Svc_Rest` now also uses PCH**
+(`target_precompile_headers(RMAP_Svc_Rest PRIVATE src/pch.h)`) since real REST source with
+a `pch` pair landed this session; its `CMakeLists.txt` also gained the self include dirs
+(`include/RMAP_Svc_Rest` + `src`) so `pch.h` resolves - same fix pattern as SB. REST did
+NOT get SB's `WIN32_LEAN_AND_MEAN`/`NOCRYPT` defines: those exist solely for the BoringSSL
+x `<wincrypt.h>` collision, and a grep confirmed the REST sources use no asio/websocketpp/
+BoringSSL (so no `<windows.h>`-via-asio pull, no collision). `RMAP_Svc_SocketIO` still has
+**no PCH** (placeholder has no `pch.h`) - add per-service PCH matching core when real code
+lands there too.
 
 ## Build & Verify
 
@@ -361,7 +444,12 @@ its full source tree, and adding PCH.
 
 Target naming: the final STATIC target is `RMAP` (produces `RMAP.lib`); each service
 OBJECT target is named for its module (`RMAP_Svc_SB`, etc.). CMake options are
-`RMAP_BUILD_SVC_<NAME>` plus `RMAP_USE_SYSTEM_JSON`.
+`RMAP_BUILD_SVC_<NAME>` (SB/REST/SOCKETIO) plus one `RMAP_USE_SYSTEM_<NAME>` per
+third-party lib: `RMAP_USE_SYSTEM_JSON`, `RMAP_USE_SYSTEM_ASIO`,
+`RMAP_USE_SYSTEM_WEBSOCKETPP`, `RMAP_USE_SYSTEM_BORINGSSL`, `RMAP_USE_SYSTEM_CURL`
+(all OFF by default). Third-party ExternalProject target names: `nlohmann_json_fetch`,
+`asio_fetch`, `websocketpp_fetch` (header-only, empty build), `boringssl_build`,
+`curl_build` (compiled).
 
 ## History Note - the phantom RMAP_Core / RMAP_SB tree
 
@@ -420,13 +508,20 @@ NOT restored.
   `<windows.h>` include (e.g. top of SB `pch.h`, before asio) - `NOCRYPT` stops `<wincrypt.h>`
   being pulled, removing the colliding macros, viable only if SB doesn't use wincrypt/Schannel
   APIs; or (2) include BoringSSL headers before `<windows.h>`/asio, or `#undef` the specific
-  colliding macros. Could be done as a compile definition
-  (`target_compile_definitions(RMAP_Svc_SB PRIVATE WIN32_LEAN_AND_MEAN NOCRYPT)`) - offered
-  to DavidSr, not yet applied (it changes Windows header behavior for all of SB).
-- Real service source: `RMAP_Svc_Rest` and `RMAP_Svc_SocketIO` are still one-line
-  placeholders. When real code lands, add per-service PCH matching core, and add each
-  service's genuine external dependencies (`find_package`/`target_link_libraries`) in its
-  `CMakeLists.txt`.
+  colliding macros. **RESOLVED:** applied as a compile definition -
+  `RMAP_Svc_SB/CMakeLists.txt` now has `target_compile_definitions(RMAP_Svc_SB PRIVATE
+  WIN32_LEAN_AND_MEAN NOCRYPT)` under `if(MSVC)` (a comment there notes SB uses BoringSSL,
+  not the Windows crypto APIs, so suppressing `<wincrypt.h>` is safe). This changes Windows
+  header behavior for all of SB but is intentional.
+- **REST compile blocker (source migration, DavidSr-owned):** like SB, `RMAP_Svc_Rest`
+  now has real source and working CMake (files listed, PCH + self include dirs added), but
+  its `pch.h` still includes legacy `<MVMF.h>`/`<MVRest.h>`/`"LibraryMVRest.h"` and
+  `LibraryMVRest.cpp/.h` keep the "MVRest" naming - the same MV::-era migration pending as
+  SB. Not yet migrated. If REST later pulls asio/websocketpp/BoringSSL (it does not today),
+  it will need SB's `WIN32_LEAN_AND_MEAN`/`NOCRYPT` guard.
+- Real service source: `RMAP_Svc_SocketIO` is the only remaining one-line placeholder. When
+  real code lands, add per-service PCH + self include dirs matching core/SB/REST, and add
+  its genuine external dependencies in its `CMakeLists.txt`.
 - Define the concrete responsibilities and public APIs of each service (SB / Rest /
   SocketIO). Currently inferred, not verified.
 - Cross-platform is designed but only verified on MSVC/Windows. Verify on Linux
@@ -511,3 +606,54 @@ NOT restored.
   `NOCRYPT`/`WIN32_LEAN_AND_MEAN` fix was offered but not yet applied. Lesson: `$<CONFIG>`
   genexes work in ExternalProject `CMAKE_ARGS`/`BUILD_BYPRODUCTS`/`--config`/target props but
   NOT in its `SOURCE_DIR`/`BINARY_DIR`/`INSTALL_DIR` dir args.
+- 2026-07-24 (DavidSr): Confirmed/updated `README.md` to fully cover asio/websocketpp/
+  BoringSSL: the three `RMAP_USE_SYSTEM_*` options, a full Dependencies section, a new Build
+  Prerequisites section (Go + NASM with winget commands and the `%LOCALAPPDATA%\bin\NASM`
+  PATH caveat; Perl not needed), the `third_party/*` layout, the SB source tree, and a
+  consumer "Linking" note (static RMAP.lib -> downstream must also link BoringSSL + system
+  libs).
+- 2026-07-24 (DavidSr): Filled out `RMAP_Svc_Rest`. DavidSr added/removed files in its `src/`
+  (now Client/Control/ICodec/Service/Source_Rest_Object/Source_Rest_Session/
+  Source_Rest_Session_Null .cpp + LibraryMVRest.cpp/.h + pch.cpp/.h; the old
+  RMAP_Svc_Rest.cpp placeholder is gone). Agent updated `RMAP_Svc_Rest/CMakeLists.txt`:
+  replaced the file list with the real disk contents, enabled PCH
+  (`target_precompile_headers(RMAP_Svc_Rest PRIVATE src/pch.h)`), and added the self include
+  dirs (`include/RMAP_Svc_Rest` + `src`) - mirroring SB. Deliberately did NOT add SB's
+  `WIN32_LEAN_AND_MEAN`/`NOCRYPT` (a grep confirmed REST uses no asio/websocketpp/BoringSSL,
+  so no `<wincrypt.h>` collision). REST's `pch.h`/`LibraryMVRest.*` still carry legacy MV::
+  names (migration pending, DavidSr-owned; logged in Open Questions).
+- 2026-07-24 (DavidSr): Renamed three `RMAP_Svc_SB` public headers on disk
+  (`MVSB_ClassTypes.h`/`MVSB_Client.h`/`MVSB_Source.h` -> `ClassTypes.h`/`Client.h`/
+  `Source.h`; `RMAP_Svc_SB.h` unchanged). Agent added the three new headers to
+  `RMAP_Svc_SB_FILES` (the old names were already absent) so they appear in the VS project's
+  `include\RMAP_Svc_SB` filter after regeneration. Lesson reaffirmed: Glob returned stale +
+  mixed-slash results; a real `Get-ChildItem` listing confirmed the four actual on-disk headers.
+- 2026-07-24 (DavidSr): Added **libcurl** as a fifth third-party lib, COMPILED (like
+  BoringSSL), following the same pattern. Version/repo matched to Sneeze per DavidSr's
+  instruction: 8.9.1, tag `curl-8_9_1`, `https://github.com/curl/curl.git` (authoritative
+  ref `C:\Dev\OMB\Sneeze\deps\curl.cmake`). Read Sneeze's curl.cmake for the exact minimal
+  build flags + platform TLS choices, and INSPECTED Sneeze's on-disk curl install to confirm
+  the static lib filename (Windows `libcurl.lib`/`libcurl-d.lib`, Unix `libcurl.a`) rather
+  than guess. Implemented `ExternalProject_Add(curl_build)` (option `RMAP_USE_SYSTEM_CURL`
+  OFF): static, no exe, LDAP/idn2/psl/ssh2/zlib/brotli/zstd disabled, per-`$<CONFIG>` install
+  prefix; TLS = Schannel on Windows (no BoringSSL) / BoringSSL via OpenSSL interface elsewhere
+  (with `add_dependencies(curl_build boringssl_build)` off-Windows); linked PRIVATE with
+  Windows system libs `ws2_32 wldap32 crypt32 normaliz`; build-only PUBLIC include +
+  `$<BUILD_INTERFACE:CURL_STATICLIB>` define so services can `#include <curl/curl.h>` without
+  leaking into the export set. Added `curl_build` to the service dependency loop, gitignored
+  `/RMAP/third_party/curl/`, and updated README (option, Dependencies entry, Prerequisites
+  note that libcurl adds no new toolchain, and broadened the linking section to "Linking the
+  compiled dependencies"). Followed the repo's approval-before-editing policy: proposed the
+  full change set first; DavidSr approved ("yes and update readme"). Open caveat recorded:
+  non-Windows + `RMAP_USE_SYSTEM_BORINGSSL=ON` leaves curl's OpenSSL args pointing at empty
+  `RMAP_BORINGSSL_*` vars (unguarded uncommon combo).
+  **BUILD-VERIFIED (2026-07-24):** `cmake --preset vs2022` configures clean; `cmake --build
+  build --target curl_build --config Release` cloned curl at `curl-8_9_1`, configured with
+  `Enabled SSL backends: Schannel` (confirming Windows uses the OS stack, no BoringSSL), built
+  the static lib, and installed it to `build/curl/Release/lib/libcurl.lib` - exactly the
+  `RMAP_CURL_LIB` path RMAP links (Release => no `-d`), confirming the on-disk filename
+  detection. Two benign warnings: Perl-not-found (curl skips man pages) and
+  "CMAKE_BUILD_TYPE not used" (expected for the multi-config MSBuild generator; same as
+  BoringSSL). NOTE: a full `RMAP.lib` build still fails only on the pre-existing SB/REST
+  `MV::`/`MVRest` source migration (DavidSr-owned), unrelated to curl; and since RMAP is a
+  static archive the PRIVATE curl link is only recorded, resolved at a downstream exe link.

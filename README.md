@@ -32,6 +32,7 @@ RMAP/
       asio/                  asio (header-only, standalone)
       websocketpp/           websocketpp (header-only)
       boringssl/             BoringSSL (compiled from source into static libcrypto/libssl)
+      curl/                  libcurl (compiled from source into a static libcurl)
   RMAP_Svc_SB/             SB service module
     CMakeLists.txt         Service project (OBJECT library folded into RMAP.lib)
     include/RMAP_Svc_SB/   Public header
@@ -66,10 +67,13 @@ generated solution.
 | **NASM** | building BoringSSL on Windows (x86/x64) | `winget install NASM.NASM`. Winget installs it under `%LOCALAPPDATA%\bin\NASM`, which is not on `PATH` by default — the build looks there and in `%ProgramFiles%\NASM` automatically. Not needed on Apple Silicon. |
 
 The three header-only dependencies (nlohmann_json, asio, websocketpp) require no
-extra tools. Only BoringSSL is compiled from source, hence the Go/NASM
-requirement. Perl is **not** required (modern BoringSSL uses Go for its assembly
-generation). To skip BoringSSL's toolchain entirely, provide an external copy via
-`RMAP_USE_SYSTEM_BORINGSSL=ON` (see Options).
+extra tools. Two dependencies are compiled from source: BoringSSL and libcurl.
+Only BoringSSL adds toolchain requirements (Go, plus NASM on Windows) — libcurl
+builds with just the C/C++ compiler and, on Windows, uses the OS's Schannel TLS
+so it needs no BoringSSL either. Perl is **not** required (modern BoringSSL uses
+Go for its assembly generation). To skip BoringSSL's toolchain entirely, provide
+an external copy via `RMAP_USE_SYSTEM_BORINGSSL=ON` (see Options); libcurl can
+likewise be supplied externally with `RMAP_USE_SYSTEM_CURL=ON`.
 
 ### Visual Studio (Windows)
 
@@ -117,6 +121,7 @@ cmake --preset vs2022 -DRMAP_BUILD_SVC_REST=OFF
 | `RMAP_USE_SYSTEM_ASIO`       | `OFF`   | `ON` uses an external `asio` via `find_package` (e.g. vcpkg/Conan) instead of the git-fetched copy. |
 | `RMAP_USE_SYSTEM_WEBSOCKETPP`| `OFF`   | `ON` uses an external `websocketpp` via `find_package` instead of the git-fetched copy.          |
 | `RMAP_USE_SYSTEM_BORINGSSL`  | `OFF`   | `ON` uses an external BoringSSL instead of building it from source (skips the Go/NASM toolchain). |
+| `RMAP_USE_SYSTEM_CURL`       | `OFF`   | `ON` uses an external libcurl instead of building it from source.                                |
 
 ## Dependencies
 
@@ -146,6 +151,19 @@ consume an external copy instead (see Options).
   because `RMAP.lib` is a static archive, a final executable that links RMAP must
   also link BoringSSL (see below). `RMAP_USE_SYSTEM_BORINGSSL=ON` uses an external
   copy instead.
+- [libcurl](https://github.com/curl/curl) 8.9.1 (tag `curl-8_9_1`) — **compiled
+  from source**, not header-only; version matches Sneeze
+  (`C:\Dev\OMB\Sneeze\deps\curl.cmake`). Built into a static libcurl via its own
+  CMake build (using the same generator as RMAP) and fetched into
+  `RMAP/third_party/curl/`. Built minimal: static only, no `curl` executable, and
+  LDAP/LDAPS, libidn2, libpsl, libssh2, zlib, brotli, and zstd all disabled. TLS
+  backend is platform-specific: **Schannel** (the OS stack) on Windows, and
+  **BoringSSL** (via curl's OpenSSL-compatible interface, reusing the BoringSSL
+  built above) on Linux/macOS. Linked **PRIVATE** and kept out of RMAP's exported
+  interface; `CURL_STATICLIB` is defined (build-only) for every translation unit
+  that includes `<curl/curl.h>`. Because `RMAP.lib` is a static archive, a final
+  executable that links RMAP must also link libcurl (see below).
+  `RMAP_USE_SYSTEM_CURL=ON` uses an external copy instead.
 
 ## Using RMAP from CMake
 
@@ -160,15 +178,20 @@ target_link_libraries(my_target PRIVATE RMAP::RMAP)
 If RMAP was built with `RMAP_USE_SYSTEM_JSON=ON`, its package config pulls in
 `nlohmann_json` for you.
 
-### Linking BoringSSL
+### Linking the compiled dependencies
 
-BoringSSL is linked **PRIVATE** into RMAP and is not re-exported. Because
-`RMAP.lib` is a *static* archive, its private dependencies are not resolved until
-the final link of an executable (or shared library). A downstream target that
-links `RMAP::RMAP` must therefore also link BoringSSL's `crypto`/`ssl`, plus the
-platform system libraries BoringSSL needs (`ws2_32`/`crypt32` on Windows;
-`pthread`/`dl` on Linux). asio and websocketpp are header-only and add no link
-requirement.
+BoringSSL and libcurl are linked **PRIVATE** into RMAP and are not re-exported.
+Because `RMAP.lib` is a *static* archive, its private dependencies are not
+resolved until the final link of an executable (or shared library). A downstream
+target that links `RMAP::RMAP` must therefore also link:
+
+- BoringSSL's `crypto`/`ssl`, plus its system libs (`ws2_32`/`crypt32` on Windows;
+  `pthread`/`dl` on Linux).
+- The static libcurl, plus its system libs. On Windows that is
+  `ws2_32 wldap32 crypt32 normaliz` (curl uses Schannel there, so it does not pull
+  BoringSSL); on Linux/macOS libcurl links the same BoringSSL noted above.
+
+asio and websocketpp are header-only and add no link requirement.
 
 ## License
 
