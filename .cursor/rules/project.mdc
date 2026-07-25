@@ -97,8 +97,12 @@ C:\Dev\OMB\RMAP\
        core\    Core.cpp ModelClass.cpp Namespace.cpp ServiceClass.cpp SourceClass.cpp
        mem\     Mem.cpp Mem_Model.cpp Mem_Source.cpp Objectbank.cpp Objectbank_Dep.cpp Objectbank_Ind.cpp
        model\   Model_Session_C2a.cpp Model_Session_Null.cpp Model_Session_UiP.cpp
-       (root)   Library.cpp LibraryRMAP.cpp/.h Collection.h SharedObject.h LnG.cpp Logger.cpp
-                Package.cpp Plugin.cpp Registry.cpp Utils.cpp pch.cpp pch.h
+       (root)   Library.cpp LibraryRMAP.cpp/.h Collection.h SharedObject.h Version.h LnG.cpp
+                Logger.cpp Package.cpp Plugin.cpp Registry.cpp Utils.cpp pch.cpp pch.h
+                (Version.h added by DavidSr 2026-07-24; a PRIVATE header under src/, NOT in
+                 include/RMAP/, so it is not part of the installed/public headers - if it is
+                 meant to expose a version macro to downstream consumers it should move to
+                 include/RMAP/; flagged to DavidSr)
     third_party\                 all git-fetched/built at BUILD time (not committed):
        json\        nlohmann_json (header-only)
        asio\        asio (header-only, standalone)

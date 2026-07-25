@@ -47,6 +47,7 @@ set(RMAP_FILES
    src/Registry.cpp
    src/SharedObject.h
    src/Utils.cpp
+   src/Version.h
    src/pch.cpp
    src/pch.h)
 
