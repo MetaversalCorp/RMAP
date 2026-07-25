@@ -19,17 +19,24 @@ Modules:
 
 ```
 RMAP/
-  CMakeLists.txt           Top-level: options, assembles the single RMAP.lib, install/export
+  CMakeLists.txt           Top-level: options, assembles the single RMAP.lib, third-party
+                           dependencies, install/export
   CMakePresets.json        Ready-made configure/build presets
   cmake/                   Package-config template for find_package(RMAP)
   RMAP/                    Core module -> the RMAP.lib target
     CMakeLists.txt         Core project (STATIC library)
     include/RMAP/          Public headers (installed)
     src/                   Implementation + private headers (+ pch.h)
-    third_party/json/      nlohmann_json, fetched from git at build time (not committed)
+    third_party/           Dependencies fetched/built from git at build time (not committed):
+      json/                  nlohmann_json (header-only)
+      asio/                  asio (header-only, standalone)
+      websocketpp/           websocketpp (header-only)
+      boringssl/             BoringSSL (compiled from source into static libcrypto/libssl)
   RMAP_Svc_SB/             SB service module
     CMakeLists.txt         Service project (OBJECT library folded into RMAP.lib)
-    include/ + src/
+    include/RMAP_Svc_SB/   Public header
+    src/                   Implementation + private headers (+ pch.h), organized into
+                           base/ client/ model/ source/ subfolders
   RMAP_Svc_Rest/           REST service module (same structure)
   RMAP_Svc_SocketIO/       SocketIO service module (same structure)
 ```
@@ -39,8 +46,8 @@ contains one project per module — `RMAP` (the core STATIC library, which *is*
 `RMAP.lib`) plus one `OBJECT`-library project per enabled service. Every service's
 compiled objects are folded into `RMAP.lib`, so the deliverable stays a single
 archive. Each project's source is organized into Solution Explorer filters that
-mirror its on-disk folder layout (`src\base`, `src\core`, `src\mem`, `src\model`,
-`include\RMAP`).
+mirror its on-disk folder layout (e.g. the core's `src\core` / `include\RMAP`, or
+SB's `src\base`, `src\client`, `src\model`, `src\source` / `include\RMAP_Svc_SB`).
 
 ## Building
 
@@ -48,6 +55,21 @@ CMake is the single source of truth. There are no committed Visual Studio
 project files — CMake generates them (and Makefiles/Ninja/Xcode elsewhere) from
 `CMakeLists.txt`, so a module excluded via an option simply won't appear in the
 generated solution.
+
+### Prerequisites
+
+| Tool | Needed for | Notes |
+|------|-----------|-------|
+| CMake ≥ 3.20 | everything | |
+| A C++17 compiler | everything | MSVC on Windows; GCC/Clang on Linux; AppleClang on macOS |
+| **Go** | building BoringSSL | Build-time only, no Go runs at runtime. `winget install GoLang.Go` |
+| **NASM** | building BoringSSL on Windows (x86/x64) | `winget install NASM.NASM`. Winget installs it under `%LOCALAPPDATA%\bin\NASM`, which is not on `PATH` by default — the build looks there and in `%ProgramFiles%\NASM` automatically. Not needed on Apple Silicon. |
+
+The three header-only dependencies (nlohmann_json, asio, websocketpp) require no
+extra tools. Only BoringSSL is compiled from source, hence the Go/NASM
+requirement. Perl is **not** required (modern BoringSSL uses Go for its assembly
+generation). To skip BoringSSL's toolchain entirely, provide an external copy via
+`RMAP_USE_SYSTEM_BORINGSSL=ON` (see Options).
 
 ### Visual Studio (Windows)
 
@@ -86,21 +108,44 @@ cmake --preset vs2022 -DRMAP_BUILD_SVC_REST=OFF
 
 ## Options
 
-| Option                    | Default | Effect                                                                                     |
-|---------------------------|---------|--------------------------------------------------------------------------------------------|
-| `RMAP_BUILD_SVC_SB`       | `ON`    | Include the SB service module in `RMAP.lib`.                                                |
-| `RMAP_BUILD_SVC_REST`     | `ON`    | Include the REST service module in `RMAP.lib`.                                              |
-| `RMAP_BUILD_SVC_SOCKETIO` | `ON`    | Include the SocketIO service module in `RMAP.lib`.                                          |
-| `RMAP_USE_SYSTEM_JSON`    | `OFF`   | `ON` uses an external `nlohmann_json` via `find_package` instead of the git-fetched copy.   |
+| Option                       | Default | Effect                                                                                          |
+|------------------------------|---------|-------------------------------------------------------------------------------------------------|
+| `RMAP_BUILD_SVC_SB`          | `ON`    | Include the SB service module in `RMAP.lib`.                                                     |
+| `RMAP_BUILD_SVC_REST`        | `ON`    | Include the REST service module in `RMAP.lib`.                                                   |
+| `RMAP_BUILD_SVC_SOCKETIO`    | `ON`    | Include the SocketIO service module in `RMAP.lib`.                                               |
+| `RMAP_USE_SYSTEM_JSON`       | `OFF`   | `ON` uses an external `nlohmann_json` via `find_package` instead of the git-fetched copy.        |
+| `RMAP_USE_SYSTEM_ASIO`       | `OFF`   | `ON` uses an external `asio` via `find_package` (e.g. vcpkg/Conan) instead of the git-fetched copy. |
+| `RMAP_USE_SYSTEM_WEBSOCKETPP`| `OFF`   | `ON` uses an external `websocketpp` via `find_package` instead of the git-fetched copy.          |
+| `RMAP_USE_SYSTEM_BORINGSSL`  | `OFF`   | `ON` uses an external BoringSSL instead of building it from source (skips the Go/NASM toolchain). |
 
 ## Dependencies
 
-- [nlohmann_json](https://github.com/nlohmann/json) 3.11.3 — used in the core's
-  public API (`RMAP.h` exposes `nlohmann::ordered_json`). By default it is
-  fetched from git at build time into `RMAP/third_party/json/` (header-only, not
-  committed). Set `RMAP_USE_SYSTEM_JSON=ON` to consume an external copy via
-  `find_package` instead. Keep the version in step to avoid ABI skew across the
-  public API.
+All dependencies are pulled from git at build time into `RMAP/third_party/` (not
+committed). The three header-only libraries just add an include directory;
+BoringSSL is compiled from source. Each has a `RMAP_USE_SYSTEM_*` option to
+consume an external copy instead (see Options).
+
+- [nlohmann_json](https://github.com/nlohmann/json) 3.11.3 — header-only; used in
+  the core's public API (`RMAP.h` exposes `nlohmann::ordered_json`). Fetched into
+  `RMAP/third_party/json/`. Keep the version in step to avoid ABI skew across the
+  public API. `RMAP_USE_SYSTEM_JSON=ON` consumes an external copy via `find_package`.
+- [asio](https://github.com/chriskohlhoff/asio) 1.30.2 (tag `asio-1-30-2`) —
+  header-only, used in **standalone** mode (RMAP defines `ASIO_STANDALONE`, so no
+  Boost). Fetched into `RMAP/third_party/asio/`. Note: upstream asio ships no CMake
+  package config, so `RMAP_USE_SYSTEM_ASIO=ON` requires asio from a package manager
+  (vcpkg/Conan) that provides an `asio::asio` target.
+- [websocketpp](https://github.com/zaphoyd/websocketpp) 0.8.2 — header-only,
+  layered on asio. RMAP defines `_WEBSOCKETPP_CPP11_STL_` so it uses the C++11
+  standard library instead of Boost. Fetched into `RMAP/third_party/websocketpp/`.
+  Same package-manager caveat as asio for `RMAP_USE_SYSTEM_WEBSOCKETPP=ON`.
+- [BoringSSL](https://github.com/google/boringssl) (`main`) — **compiled from
+  source**, not header-only. Built into static `libcrypto`/`libssl` via its own
+  CMake build (using the same generator as RMAP) and fetched into
+  `RMAP/third_party/boringssl/`. Requires Go (and NASM on Windows x86/x64) — see
+  Prerequisites. It is linked **PRIVATE** and kept out of RMAP's exported interface;
+  because `RMAP.lib` is a static archive, a final executable that links RMAP must
+  also link BoringSSL (see below). `RMAP_USE_SYSTEM_BORINGSSL=ON` uses an external
+  copy instead.
 
 ## Using RMAP from CMake
 
@@ -114,6 +159,16 @@ target_link_libraries(my_target PRIVATE RMAP::RMAP)
 
 If RMAP was built with `RMAP_USE_SYSTEM_JSON=ON`, its package config pulls in
 `nlohmann_json` for you.
+
+### Linking BoringSSL
+
+BoringSSL is linked **PRIVATE** into RMAP and is not re-exported. Because
+`RMAP.lib` is a *static* archive, its private dependencies are not resolved until
+the final link of an executable (or shared library). A downstream target that
+links `RMAP::RMAP` must therefore also link BoringSSL's `crypto`/`ssl`, plus the
+platform system libraries BoringSSL needs (`ws2_32`/`crypt32` on Windows;
+`pthread`/`dl` on Linux). asio and websocketpp are header-only and add no link
+requirement.
 
 ## License
 
