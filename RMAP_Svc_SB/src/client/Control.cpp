@@ -654,8 +654,8 @@ public:
 
    void SocketConnect_Complete (int pVD) override
    {
-      bool bVoluntary = RMAP::CORE::LIBRARY::GetVDParam (pVD, MV_VDPARAM_VOLUNTARY);
-      bool bConnected = RMAP::CORE::LIBRARY::GetVDParam (pVD, MV_VDPARAM_CONNECTED);
+      bool bVoluntary = RMAP::CORE::CLIENT::GetVDParam (pVD, MV_VDPARAM_VOLUNTARY);
+      bool bConnected = RMAP::CORE::CLIENT::GetVDParam (pVD, MV_VDPARAM_CONNECTED);
 
       if (bConnected != false)
       {
@@ -670,9 +670,9 @@ public:
 
    void SocketDisconnect_Complete (int pVD) override
    {
-      bool bVoluntary    = RMAP::CORE::LIBRARY::GetVDParam (pVD, MV_VDPARAM_VOLUNTARY);
-      bool bConnected    = RMAP::CORE::LIBRARY::GetVDParam (pVD, MV_VDPARAM_CONNECTED);
-      bool bDisconnected = RMAP::CORE::LIBRARY::GetVDParam (pVD, MV_VDPARAM_DISCONNECTED);
+      bool bVoluntary    = RMAP::CORE::CLIENT::GetVDParam (pVD, MV_VDPARAM_VOLUNTARY);
+      bool bConnected    = RMAP::CORE::CLIENT::GetVDParam (pVD, MV_VDPARAM_CONNECTED);
+      bool bDisconnected = RMAP::CORE::CLIENT::GetVDParam (pVD, MV_VDPARAM_DISCONNECTED);
 
       dwResult = SBA_RESULT_SUCCESS;
 
@@ -687,9 +687,9 @@ public:
 
       switch (nType)
       {
-      case kSYSTEMCONNECT_RESPONSE:        SystemConnect_Response    (pIActionSB, RMAP::CORE::LIBRARY::GetVDParam (pParam, MV_VDPARAM_VOLUNTARY)); break;
+      case kSYSTEMCONNECT_RESPONSE:        SystemConnect_Response    (pIActionSB, RMAP::CORE::CLIENT::GetVDParam (pParam, MV_VDPARAM_VOLUNTARY)); break;
       case kSYSTEMDISCONNECT_RESPONSE:     SystemDisconnect_Response (pIActionSB, pParam);                                                         break;
-      case kLOGIN_RESPONSE:                Login_Response            (pIActionSB, RMAP::CORE::LIBRARY::GetVDParam (pParam, MV_VDPARAM_VOLUNTARY)); break;
+      case kLOGIN_RESPONSE:                Login_Response            (pIActionSB, RMAP::CORE::CLIENT::GetVDParam (pParam, MV_VDPARAM_VOLUNTARY)); break;
       case kLOGOUT_RESPONSE:               Logout_Response           (pIActionSB, pParam);                                                         break;
       }
    }
@@ -744,7 +744,7 @@ private:
 
          Progress (&ProgressSB);
 
-         if (pClient->pNet ()->Connect (m_bSecure, m_sHost, m_wPort, this, RMAP::CORE::LIBRARY::SetVDParam (bVoluntary, false, false), m_nTimeout) != false)
+         if (pClient->pNet ()->Connect (m_bSecure, m_sHost, m_wPort, this, RMAP::CORE::CLIENT::SetVDParam (bVoluntary, false, false), m_nTimeout) != false)
          {
             bExit = true;
          }
@@ -898,7 +898,7 @@ private:
          pRequest["pFingerprint"]["dwHash_Canvas"]          = 0;
          pRequest["pFingerprint"]["dwHash_UserAgent"]       = 0;
 
-         if (pIActionSB->Send (this, CONTROL::kSYSTEMCONNECT_RESPONSE, RMAP::CORE::LIBRARY::SetVDParam (bVoluntary, false, false)) != false)
+         if (pIActionSB->Send (this, CONTROL::kSYSTEMCONNECT_RESPONSE, RMAP::CORE::CLIENT::SetVDParam (bVoluntary, false, false)) != false)
          {
             bExit = true;
          }
@@ -948,7 +948,7 @@ private:
 
             ordered_json& pRequest = pIActionSB->GetRequest ();
 
-            if (pIActionSB->Send (this, CONTROL::kSYSTEMCONNECT_RESPONSE, RMAP::CORE::LIBRARY::SetVDParam (bVoluntary, false, bDisconnected)) != false)
+            if (pIActionSB->Send (this, CONTROL::kSYSTEMCONNECT_RESPONSE, RMAP::CORE::CLIENT::SetVDParam (bVoluntary, false, bDisconnected)) != false)
             {
                bExit = true;
             }
@@ -969,7 +969,7 @@ private:
    {
       dwResult = pIActionSB->GetResult ();
 
-      SystemDisconnect_Exit (pIActionSB, RMAP::CORE::LIBRARY::GetVDParam (pVD, MV_VDPARAM_VOLUNTARY), RMAP::CORE::LIBRARY::GetVDParam (pVD, MV_VDPARAM_DISCONNECTED));
+      SystemDisconnect_Exit (pIActionSB, RMAP::CORE::CLIENT::GetVDParam (pVD, MV_VDPARAM_VOLUNTARY), RMAP::CORE::CLIENT::GetVDParam (pVD, MV_VDPARAM_DISCONNECTED));
 
       Control_Release ();
    }
@@ -997,7 +997,7 @@ private:
          {
             CLIENT::IACTION* pIActionSB = dynamic_cast<CLIENT::IACTION*> (pIAction);
 
-            if (pIActionSB->Send (this, CONTROL::kLOGIN_RESPONSE, RMAP::CORE::LIBRARY::SetVDParam (bVoluntary, false, false)) != false)
+            if (pIActionSB->Send (this, CONTROL::kLOGIN_RESPONSE, RMAP::CORE::CLIENT::SetVDParam (bVoluntary, false, false)) != false)
             {
                bExit = true;
             }
@@ -1056,7 +1056,7 @@ private:
 
             if (pIAction)
             {
-               if (pIActionSB->Send (this, CONTROL::kLOGOUT_RESPONSE, RMAP::CORE::LIBRARY::SetVDParam (bVoluntary, false, bDisconnected)) != false)
+               if (pIActionSB->Send (this, CONTROL::kLOGOUT_RESPONSE, RMAP::CORE::CLIENT::SetVDParam (bVoluntary, false, bDisconnected)) != false)
                {
                   bExit = true;
                }
@@ -1084,7 +1084,7 @@ private:
    {
       dwResult = pIActionSB->GetResult ();
 
-      Logout_Exit (pIActionSB, RMAP::CORE::LIBRARY::GetVDParam (pVD, MV_VDPARAM_VOLUNTARY), RMAP::CORE::LIBRARY::GetVDParam (pVD, MV_VDPARAM_DISCONNECTED));
+      Logout_Exit (pIActionSB, RMAP::CORE::CLIENT::GetVDParam (pVD, MV_VDPARAM_VOLUNTARY), RMAP::CORE::CLIENT::GetVDParam (pVD, MV_VDPARAM_DISCONNECTED));
 
       Control_Release ();
    }

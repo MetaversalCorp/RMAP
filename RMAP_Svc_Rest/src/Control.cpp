@@ -8,7 +8,7 @@
 
 #include "pch.h"
 
-using namespace RMAP::SVC_Rest;
+using namespace RMAP::SVC_REST;
 
 static const std::map<std::string, const CLIENT::ACTION*> g_aAction_Control;
 
@@ -214,7 +214,7 @@ public:
          {
             CLIENT::IACTION* pIActionREST = dynamic_cast<CLIENT::IACTION*> (pIAction);
 
-            if (pIActionREST->Send (this, CONTROL::kLOGIN_RESPONSE, RMAP::CORE::LIBRARY::SetVDParam (bVoluntary, false, false)) != false)
+            if (pIActionREST->Send (this, CONTROL::kLOGIN_RESPONSE, RMAP::CORE::CLIENT::SetVDParam (bVoluntary, false, false)) != false)
             {
                bExit = true;
             }
@@ -321,7 +321,7 @@ public:
 
             if (pIAction)
             {
-               if (pIActionREST->Send (this, CONTROL::kLOGOUT_RESPONSE, RMAP::CORE::LIBRARY::SetVDParam (bVoluntary, false, bDisconnected)) != false)
+               if (pIActionREST->Send (this, CONTROL::kLOGOUT_RESPONSE, RMAP::CORE::CLIENT::SetVDParam (bVoluntary, false, bDisconnected)) != false)
                {
                   bExit = true;
                }
@@ -349,7 +349,7 @@ public:
    {
       dwResult = pIAction->IsSuccess () ? SBA_RESULT_SUCCESS : SBA_RESULT_TRANSMITFAILURE;
 
-      Logout_Exit (pIAction, RMAP::CORE::LIBRARY::GetVDParam (pVD, MV_VDPARAM_VOLUNTARY), RMAP::CORE::LIBRARY::GetVDParam (pVD, MV_VDPARAM_DISCONNECTED));
+      Logout_Exit (pIAction, RMAP::CORE::CLIENT::GetVDParam (pVD, MV_VDPARAM_VOLUNTARY), RMAP::CORE::CLIENT::GetVDParam (pVD, MV_VDPARAM_DISCONNECTED));
    }
 
    void Logout_Exit (RMAP::CORE::CLIENT::IACTION* pIAction, bool bVoluntary, bool bDisconnected)
@@ -465,7 +465,7 @@ public:
 
       switch (nType)
       {
-      case kLOGIN_RESPONSE:                Login_Response            (pIActionREST, RMAP::CORE::LIBRARY::GetVDParam (pParam, MV_VDPARAM_VOLUNTARY)); break;
+      case kLOGIN_RESPONSE:                Login_Response            (pIActionREST, RMAP::CORE::CLIENT::GetVDParam (pParam, MV_VDPARAM_VOLUNTARY)); break;
       case kLOGOUT_RESPONSE:               Logout_Response           (pIActionREST, pParam);                                                         break;
       }
    }

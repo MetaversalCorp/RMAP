@@ -9,7 +9,7 @@
 #include "pch.h"
 
 using namespace RMAP;
-std::string LibrarySVC_Rest::sModuleName = "SVC_Rest";
+std::string LibrarySVC_Rest::sModuleName = "SVC_REST";
 
 LibrarySVC_Rest::LibrarySVC_Rest (std::string sID, std::string sCopyright, std::string sTitle, std::string sVersion) :
    RMAP::CORE::LIBRARY (sID, sCopyright, sTitle, sVersion)
@@ -29,9 +29,9 @@ bool LibrarySVC_Rest::Install (RMAP::CORE::PLUGIN* pPlugin)
 
    if (m_pRequire = pCore->Require ("RMAP", "", ""))
    {
-      m_apFactory_Service.push_back (SVC_Rest::SERVICE::factory ());
+      m_apFactory_Service.push_back (SVC_REST::SERVICE::factory ());
 
-      m_apFactory_Source.push_back (SVC_Rest::REST_SESSION_NULL::factory ());
+      m_apFactory_Source.push_back (SVC_REST::REST_SESSION_NULL::factory ());
 
       pPlugin->Factory_Services (m_apFactory_Service);
       pPlugin->Factory_Sources (m_apFactory_Source);
@@ -58,4 +58,33 @@ void LibrarySVC_Rest::Unstall (RMAP::CORE::PLUGIN* pPlugin)
 
       m_pRequire = NULL;
    }
+}
+
+/*******************************************************************************************************************************
+**                                                     Startup/Shutdown                                                       **
+*******************************************************************************************************************************/
+
+void RMAP::SVC_REST::Install ()
+{
+   RMAP::CORE::APP* pCore = RMAP::CORE::APP::GetInstance ();
+
+#ifdef WIN32
+   WSADATA wsaData;
+
+   if (WSAStartup (MAKEWORD (2, 2), &wsaData) == 0)
+#endif
+   {
+      pCore->LibraryInstall (new LibrarySVC_Rest (LibrarySVC_Rest::sModuleName, "Copyright 2014 - 2026 Metaversal Corporation. All rights reserved.", "RMAP Service REST", ""));
+   }
+}
+
+void RMAP::SVC_REST::Unstall ()
+{
+   RMAP::CORE::APP* pCore = RMAP::CORE::APP::GetInstance ();
+
+   pCore->LibraryUnstall (LibrarySVC_Rest::sModuleName);
+
+#ifdef WIN32
+   WSACleanup ();
+#endif
 }

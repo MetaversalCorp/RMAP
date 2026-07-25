@@ -7,6 +7,7 @@
 *******************************************************************************************************************************/
 
 #include "pch.h"
+#include "Version.h"
 
 using namespace RMAP;
 
@@ -40,4 +41,22 @@ void LibraryRMAP::Unstall (CORE::PLUGIN* pPlugin)
 
    for (n = 0; n < m_apFactory_Model.size (); n++)
       delete m_apFactory_Model[n];
+}
+
+/*******************************************************************************************************************************
+**                                                     Startup/Shutdown                                                       **
+*******************************************************************************************************************************/
+
+void RMAP::CORE::Install ()
+{
+   RMAP::CORE::APP* pCore = RMAP::CORE::APP::GetInstance ();
+
+   pCore->LibraryInstall (new LibraryRMAP (LibraryRMAP::sModuleName, "Copyright 2014 - 2026 Metaversal Corporation. All rights reserved.", "RMAP Library", VER_FILE_VERSION_STR));
+}
+
+void RMAP::CORE::Unstall ()
+{
+   RMAP::CORE::APP* pCore = RMAP::CORE::APP::GetInstance ();
+
+   pCore->LibraryUnstall (LibraryRMAP::sModuleName);
 }

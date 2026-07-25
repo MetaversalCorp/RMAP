@@ -8,7 +8,7 @@
 
 #include "pch.h"
 
-using namespace RMAP::SVC_Rest;
+using namespace RMAP::SVC_REST;
 
 static const char* asProgress[] =
 {

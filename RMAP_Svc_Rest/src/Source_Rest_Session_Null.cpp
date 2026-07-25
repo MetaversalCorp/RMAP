@@ -8,7 +8,7 @@
 
 #include "pch.h"
 
-using namespace RMAP::SVC_Rest;
+using namespace RMAP::SVC_REST;
 
 /*******************************************************************************************************************************
 **                                                     CLASS (FACTORY)                                                        **
@@ -51,7 +51,7 @@ void REST_SESSION_NULL::init ()
 
 REST_SESSION_NULL::FACTORY* REST_SESSION_NULL::factory ()
 {
-   return new FACTORY ("MVRest", "Session_Null", aAction);
+   return new FACTORY ("Rest", "Session_Null", aAction);
 }
 
 // ===== Client Methods =====================================================================================================

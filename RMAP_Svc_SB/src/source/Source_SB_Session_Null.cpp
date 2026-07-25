@@ -47,7 +47,7 @@ SB_SESSION_NULL::~SB_SESSION_NULL ()
 
 SB_SESSION_NULL::FACTORY* SB_SESSION_NULL::factory ()
 {
-   return new FACTORY ("RMAP_Svc_SB", "Session_Null", aAction);
+   return new FACTORY ("SB", "Session_Null", aAction);
 }
 
 // ===== Client Methods =====================================================================================================

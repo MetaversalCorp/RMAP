@@ -8,7 +8,7 @@
 
 #include "pch.h"
 
-using namespace RMAP::SVC_Rest;
+using namespace RMAP::SVC_REST;
 
 /*******************************************************************************************************************************
 **                                                     CLASS (Impl)                                                           **
@@ -142,7 +142,7 @@ RMAP::CORE::CLIENT::IACTION* REST_OBJECT::Request (std::string sAction)
 
    if ((pIAction = RMAP::CORE::MEM::SOURCE::Request (sAction)) != NULL)
    {
-      RMAP::SVC_Rest::CLIENT::IACTION* pIActionRest = reinterpret_cast<RMAP::SVC_Rest::CLIENT::IACTION*> (pIAction);
+      RMAP::SVC_REST::CLIENT::IACTION* pIActionRest = reinterpret_cast<RMAP::SVC_REST::CLIENT::IACTION*> (pIAction);
 
       pClientREST->IAction_Add (pIActionRest, this);
    }
@@ -183,7 +183,7 @@ void REST_OBJECT::Inserted (RMAP::CORE::MEM::SOURCE* pObject, RMAP::CORE::MEM::S
    RMAP::CORE::MODEL_OBJECT* pModelSelf = dynamic_cast<RMAP::CORE::MODEL_OBJECT*> (pModel ());
    RMAP::CORE::MODEL_OBJECT* pModelChild = (pChild != NULL) ? dynamic_cast<RMAP::CORE::MODEL_OBJECT*> (pChild->pModel ()) : NULL;
    RMAP::CORE::MODEL_OBJECT* pModelObject = dynamic_cast<RMAP::CORE::MODEL_OBJECT*> (pObject->pModel ());
-   SVC_Rest::REST_OBJECT* pSourceObject = (pObject != NULL) ? dynamic_cast<SVC_Rest::REST_OBJECT*> (pObject) : NULL;
+   SVC_REST::REST_OBJECT* pSourceObject = (pObject != NULL) ? dynamic_cast<SVC_REST::REST_OBJECT*> (pObject) : NULL;
 
    if (pChild == NULL)
    {
@@ -216,7 +216,7 @@ void REST_OBJECT::Updated (RMAP::CORE::MEM::SOURCE* pObject, RMAP::CORE::MEM::SO
    RMAP::CORE::MODEL_OBJECT* pModelSelf = dynamic_cast<RMAP::CORE::MODEL_OBJECT*> (pModel ());
    RMAP::CORE::MODEL_OBJECT* pModelChild = (pChild != NULL) ? dynamic_cast<RMAP::CORE::MODEL_OBJECT*> (pChild->pModel ()) : NULL;
    RMAP::CORE::MODEL_OBJECT* pModelObject = dynamic_cast<RMAP::CORE::MODEL_OBJECT*> (pObject->pModel ());
-   SVC_Rest::REST_OBJECT* pSourceObject = (pObject != NULL) ? dynamic_cast<SVC_Rest::REST_OBJECT*> (pObject) : NULL;
+   SVC_REST::REST_OBJECT* pSourceObject = (pObject != NULL) ? dynamic_cast<SVC_REST::REST_OBJECT*> (pObject) : NULL;
 
    if (pChild == NULL)
    {
@@ -240,7 +240,7 @@ void REST_OBJECT::Changed (RMAP::CORE::MEM::SOURCE* pObject, RMAP::CORE::MEM::SO
    RMAP::CORE::MODEL_OBJECT* pModelSelf = dynamic_cast<RMAP::CORE::MODEL_OBJECT*> (pModel ());
    RMAP::CORE::MODEL_OBJECT* pModelChild = (pChild != NULL) ? dynamic_cast<RMAP::CORE::MODEL_OBJECT*> (pChild->pModel ()) : NULL;
    RMAP::CORE::MODEL_OBJECT* pModelObject = (pObject != NULL) ? dynamic_cast<RMAP::CORE::MODEL_OBJECT*> (pObject->pModel ()) : NULL;
-   SVC_Rest::REST_OBJECT* pSourceObject = (pObject != NULL) ? dynamic_cast<SVC_Rest::REST_OBJECT*> (pObject) : NULL;
+   SVC_REST::REST_OBJECT* pSourceObject = (pObject != NULL) ? dynamic_cast<SVC_REST::REST_OBJECT*> (pObject) : NULL;
 
    if (pObject != NULL)
    {

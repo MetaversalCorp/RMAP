@@ -9,7 +9,7 @@
 #include "pch.h"
 #include <mutex>
 
-using namespace RMAP::SVC_Rest;
+using namespace RMAP::SVC_REST;
 
 /*******************************************************************************************************************************
 **                                                     CLASS (CLIENT::ACTION)                                                 **
@@ -130,7 +130,7 @@ ordered_json& CLIENT::IACTION::GetRequest ()
 *******************************************************************************************************************************/
 
 CLIENT::IREFERENCE::IREFERENCE (uint64_t twClientIx) :
-   RMAP::CORE::CLIENT::IREFERENCE ("MVRest", twClientIx)
+   RMAP::CORE::CLIENT::IREFERENCE ("Rest", twClientIx)
 {
 }
 
@@ -332,12 +332,12 @@ RMAP::CORE::CLIENT::IACTION* CLIENT::Request (const RMAP::CORE::CLIENT::ACTION* 
    return new IACTION (this, pActionREST);
 }
 
-void CLIENT::IAction_Add (RMAP::SVC_Rest::CLIENT::IACTION* pIAction, RMAP::CORE::SOURCE* pSource)
+void CLIENT::IAction_Add (RMAP::SVC_REST::CLIENT::IACTION* pIAction, RMAP::CORE::SOURCE* pSource)
 {
    m_pImpl->IAction_Add (pIAction, pSource);
 }
 
-void CLIENT::IAction_Remove (RMAP::SVC_Rest::CLIENT::IACTION* pIAction)
+void CLIENT::IAction_Remove (RMAP::SVC_REST::CLIENT::IACTION* pIAction)
 {
    m_pImpl->IAction_Remove (pIAction);
 }
@@ -347,7 +347,7 @@ void CLIENT::IAction_AbortAll (RMAP::CORE::SOURCE* pSource)
    m_pImpl->IAction_AbortAll (pSource);
 }
 
-CLIENT::ICODEC* CLIENT::Codec_Create (RMAP::SVC_Rest::CLIENT::IACTION* pIAction, std::string sRequest)
+CLIENT::ICODEC* CLIENT::Codec_Create (RMAP::SVC_REST::CLIENT::IACTION* pIAction, std::string sRequest)
 {
    CLIENT::ICODEC* pICodec = NULL;
    RMAP::CORE::SOURCE* pSource = Source (0); // MV_SERVICE_OBJECT_SESSION // this is pSession.pSource

@@ -270,7 +270,7 @@ CLIENT::ACTION::~ACTION ()
 *******************************************************************************************************************************/
 
 CLIENT::IREFERENCE::IREFERENCE (uint64_t twClientIx) :
-   RMAP::CORE::CLIENT::IREFERENCE ("RMAP_Svc_SB", twClientIx)
+   RMAP::CORE::CLIENT::IREFERENCE ("SB", twClientIx)
 {
 }
 

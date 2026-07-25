@@ -245,6 +245,9 @@ namespace RMAP
          bool     m_bInstalled;
          LIBRARY* m_pLibrary;
       };
+
+      void Install ();
+      void Unstall ();
    }
 }
 #endif //RMAP_H

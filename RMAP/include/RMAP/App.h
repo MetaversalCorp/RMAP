@@ -148,10 +148,6 @@ namespace RMAP
          SOURCE::FACTORY* m_pSource_Factory;
       };
 
-#define MV_VDPARAM_VOLUNTARY                              0x00000001
-#define MV_VDPARAM_DISCONNECTED                           0x00000002
-#define MV_VDPARAM_CONNECTED                              0x00000004
-
       class CORE;
       class PLUGIN;
       class LIBRARY
@@ -167,9 +163,6 @@ namespace RMAP
 
          virtual bool Install (PLUGIN* pPlugin) = 0;
          virtual void Unstall (PLUGIN* pPlugin) = 0;
-
-         static bool     GetVDParam (intptr_t pVD, intptr_t nVDParam);
-         static intptr_t SetVDParam (bool bVoluntary, bool bConnected, bool bDisconnected);
 
       private:
          class Impl;

@@ -205,6 +205,13 @@ namespace RMAP
          virtual bool      IsLoggedIn () = 0;
          virtual bool      SafeKill () = 0;
 
+#define MV_VDPARAM_VOLUNTARY                              0x00000001
+#define MV_VDPARAM_DISCONNECTED                           0x00000002
+#define MV_VDPARAM_CONNECTED                              0x00000004
+
+         static bool     GetVDParam (intptr_t pVD, intptr_t nVDParam);
+         static intptr_t SetVDParam (bool bVoluntary, bool bConnected, bool bDisconnected);
+
       protected:
          MODEL* Model_Open_Aux (std::string sID_Model, std::string sArgs);
          MODEL* Model_Close_Aux (MODEL* pModel);

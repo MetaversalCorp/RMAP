@@ -127,12 +127,17 @@ C:\Dev\OMB\RMAP\
   RMAP_Svc_Rest\                 NO LONGER A PLACEHOLDER - real source added this session
     include\RMAP_Svc_Rest\RMAP_Svc_Rest.h  public header, declares RMAP::Svc_Rest_GetName()
     src\                         flat implementation tree (no subfolders) + pch:
-       (root)   Client.cpp Control.cpp ICodec.cpp LibraryMVRest.cpp/.h Service.cpp
+       (root)   Client.cpp Control.cpp ICodec.cpp Library.cpp/.h Service.cpp
                 Source_Rest_Object.cpp Source_Rest_Session.cpp Source_Rest_Session_Null.cpp
                 pch.cpp pch.h
-                (old src/RMAP_Svc_Rest.cpp placeholder removed from the file list; LibraryMVRest.*
-                 still carries legacy "MVRest" naming and pch.h still includes <MVMF.h>/<MVRest.h>/
-                 "LibraryMVRest.h" - same MV::-era migration pending as SB, DavidSr-owned)
+                (old src/RMAP_Svc_Rest.cpp placeholder removed from the file list;
+                 Library.cpp/.h renamed from LibraryMVRest.cpp/.h by DavidSr - agent synced the
+                 file list, mirroring the identical SB LibraryMVSB->Library rename; the REST
+                 namespace was ALSO renamed RMAP::SVC_Rest -> RMAP::SVC_REST this session - see
+                 below; NOTE the class LibrarySVC_Rest and the module string "SVC_Rest" were
+                 deliberately left unchanged; pch.h STILL includes legacy <MVMF.h>/<MVRest.h>/
+                 "LibraryMVRest.h" and Library.* still uses "MVRest" header comments - same
+                 MV::-era migration pending as SB, DavidSr-owned)
   RMAP_Svc_SocketIO\             PLACEHOLDER (same structure) declares RMAP::Svc_SocketIO_GetName()
   .cursor\rules\project.mdc      this file
 ```
@@ -686,3 +691,23 @@ NOT restored.
   intervening regenerate) is a pure no-op. To pull newer upstream now, run the generated
   `<name>-update` target. BoringSSL trade-off noted (freezes at cloned `main` commit until
   manual update) - accepted.
+- 2026-07-24 (DavidSr): REST source-naming cleanup (two steps). (1) DavidSr renamed
+  `RMAP_Svc_Rest/src/LibraryMVRest.cpp` AND `LibraryMVRest.h` -> `Library.cpp`/`Library.h`
+  (both, though he only mentioned the .cpp - confirmed via `Get-ChildItem`); agent updated the
+  two entries in `RMAP_Svc_Rest/CMakeLists.txt` (`RMAP_Svc_Rest_FILES`). This mirrors the
+  identical SB `LibraryMVSB.* -> Library.*` rename done earlier. (2) DavidSr asked to rename
+  the REST **namespace** `SVC_Rest -> SVC_REST`. A grep found `SVC_Rest` in three distinct
+  identifier kinds: the namespace (`namespace SVC_Rest`, `RMAP::SVC_Rest`, `SVC_Rest::`), the
+  class `LibrarySVC_Rest`, and the module string `"SVC_Rest"` (`LibrarySVC_Rest::sModuleName`
+  in Library.cpp:12). A blind replace_all would have corrupted the class (`LibrarySVC_Rest::`
+  contains the substring `SVC_Rest::`). Asked DavidSr for scope; he chose **namespace only**.
+  Applied: full-token replace in files that contain ONLY the namespace (RMAP_Svc_Rest.h,
+  Control.cpp, Service.cpp, ICodec.cpp, Client.cpp[4], Source_Rest_Object.cpp[9],
+  Source_Rest_Session_Null.cpp) + surgical single-line edits in the two MIXED files
+  (Source_Rest_Session.cpp line 11 only; Library.cpp factory calls on lines 32 & 34 only).
+  Left `LibrarySVC_Rest` (class) and `"SVC_Rest"` (module string, possibly a plugin-lookup
+  identifier - unsafe to change blindly) untouched per DavidSr's choice. Verified by grep: the
+  only remaining `SVC_Rest` occurrences are exactly those two intentionally-kept identifiers.
+  No CMake regen needed (no files added/removed). LESSON: when a rename token is a substring of
+  other identifiers (class names, scope-resolution, string literals), never `replace_all`
+  blindly - enumerate the categories first and ask for scope.

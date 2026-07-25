@@ -7,11 +7,18 @@
 *******************************************************************************************************************************/
 
 #include "pch.h"
+#ifdef WIN32
+#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+#include <windows.h>
+
+#pragma comment( lib, "ws2_32" )
+#include <WinSock2.h>
+#endif
 
 using namespace RMAP;
 
 extern RMAP::SVC_SB::xTIME* g_pTime = NULL;
-std::string LibrarySVC_SB::sModuleName = "RMAP_Svc_SB";
+std::string LibrarySVC_SB::sModuleName = "RMAP_SVC_SB";
 
 LibrarySVC_SB::LibrarySVC_SB (std::string sID, std::string sCopyright, std::string sTitle, std::string sVersion) :
    RMAP::CORE::LIBRARY (sID, sCopyright, sTitle, sVersion),
@@ -75,4 +82,33 @@ void LibrarySVC_SB::Unstall (RMAP::CORE::PLUGIN* pPlugin)
 
       m_pRequire = NULL;
    }
+}
+
+/*******************************************************************************************************************************
+**                                                     Startup/Shutdown                                                       **
+*******************************************************************************************************************************/
+
+void RMAP::SVC_SB::Install ()
+{
+   RMAP::CORE::APP* pCore = RMAP::CORE::APP::GetInstance ();
+
+#ifdef WIN32
+   WSADATA wsaData;
+
+   if (WSAStartup (MAKEWORD (2, 2), &wsaData) == 0)
+#endif
+   {
+      pCore->LibraryInstall (new LibrarySVC_SB (LibrarySVC_SB::sModuleName, "Copyright 2014 - 2026 Metaversal Corporation. All rights reserved.", "RMAP Service REST", ""));
+   }
+}
+
+void RMAP::SVC_SB::Unstall ()
+{
+   RMAP::CORE::APP* pCore = RMAP::CORE::APP::GetInstance ();
+
+   pCore->LibraryUnstall (LibrarySVC_SB::sModuleName);
+
+#ifdef WIN32
+   WSACleanup ();
+#endif
 }

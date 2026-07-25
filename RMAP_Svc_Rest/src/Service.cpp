@@ -8,7 +8,7 @@
 
 #include "pch.h"
 
-using namespace RMAP::SVC_Rest;
+using namespace RMAP::SVC_REST;
 
 /*******************************************************************************************************************************
 **                                                     CLASS (IREFRENCE)                                                      **
@@ -92,7 +92,7 @@ SERVICE::~SERVICE ()
 
 SERVICE::FACTORY* SERVICE::factory ()
 {
-   return new FACTORY ("MVRest");
+   return new FACTORY ("Rest");
 }
 
 SERVICE::NETSETTINGS* SERVICE::pNetSettings () 

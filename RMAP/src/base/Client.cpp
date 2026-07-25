@@ -270,6 +270,27 @@ MEM::MODEL* CLIENT::Model_Close (MEM::MODEL* pModel)
 void CLIENT::Lock ()    { m_pImpl->Enter (); }
 void CLIENT::Unlock ()  { m_pImpl->Leave (); }
 
+bool CLIENT::GetVDParam (intptr_t pVD, intptr_t nVDParam)
+{
+   return ((pVD & nVDParam) != 0);
+}
+
+intptr_t CLIENT::SetVDParam (bool bVoluntary, bool bConnected, bool bDisconnected)
+{
+   intptr_t nResult = 0;
+
+   if (bVoluntary)
+      nResult |= MV_VDPARAM_VOLUNTARY;
+
+   if (bConnected)
+      nResult |= MV_VDPARAM_CONNECTED;
+
+   if (bDisconnected)
+      nResult |= MV_VDPARAM_DISCONNECTED;
+
+   return nResult;
+}
+
 /*******************************************************************************************************************************
 **                                                     CLASS (IACTION)                                                      **
 *******************************************************************************************************************************/

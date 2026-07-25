@@ -11,7 +11,7 @@
 
 namespace RMAP
 {
-   namespace SVC_Rest
+   namespace SVC_REST
    {
       class SERVICE : public RMAP::CORE::SERVICE
       {
@@ -436,6 +436,13 @@ namespace RMAP
 
          RMAP::CORE::ISOURCE_SESSION* GetSessionInterface ();
       };
+
+      /*******************************************************************************************************************************
+      **                                                     Startup/Shutdown                                                       **
+      *******************************************************************************************************************************/
+
+      void Install ();
+      void Unstall ();
    }
 }
 #endif //RMAP_SVC_REST_H

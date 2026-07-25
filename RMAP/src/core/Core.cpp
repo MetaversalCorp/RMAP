@@ -9,13 +9,6 @@
 #include "pch.h"
 #include <queue>
 
-#ifdef _WIN32
-   #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
-   #include <windows.h>
-#else
-   #error Fix for other platforms
-#endif
-
 using namespace RMAP::CORE;
 
 typedef struct tagNOTIFYEVENT
@@ -41,7 +34,6 @@ public:
 typedef struct tagLIBRARYINFO
 {
    LIBRARY*                            pLibrary;
-   HMODULE                             hModule;
 }
 LIBRARYINFO;
 
@@ -331,7 +323,6 @@ bool APP::LibraryInstall (LIBRARY* pLibrary)
    if (m_pImpl->mpLibrary.find (pLibrary->sID ()) == m_pImpl->mpLibrary.end ())
    {
       li.pLibrary = pLibrary;
-      li.hModule  = NULL;
 
       m_pImpl->mpLibrary[pLibrary->sID ()] = li;
    }
@@ -358,22 +349,21 @@ PLUGIN* APP::Plugin_Open (std::string sID)
    PLUGIN::IREFERENCE* pIReference;
    std::map<std::string, LIBRARYINFO>::iterator it;
    LIBRARY* pLibrary;
-   HMODULE hModule;
-
+   
    it = m_pImpl->mpLibrary.find (sID);
 
    if (it == m_pImpl->mpLibrary.end ())
    {
-      hModule = LoadLibraryA (sID.c_str ());
+//      hModule = LoadLibraryA (sID.c_str ());
 
       it = m_pImpl->mpLibrary.find (sID);
    }
-   else hModule = NULL;
+//   else hModule = NULL;
 
    if (it != m_pImpl->mpLibrary.end ())
    {
-      if (hModule != NULL)
-         it->second.hModule = hModule;
+//      if (hModule != NULL)
+//         it->second.hModule = hModule;
 
       pLibrary = it->second.pLibrary;
 
@@ -413,9 +403,9 @@ PLUGIN* APP::Plugin_Close (PLUGIN* pPlugin)
    if (m_pImpl->sopPlugin.Close (sID) != NULL)
    {
       it = m_pImpl->mpLibrary.find (sID);
-      if (it != m_pImpl->mpLibrary.end () && it->second.hModule != NULL)
+//      if (it != m_pImpl->mpLibrary.end () && it->second.hModule != NULL)
       {
-         FreeLibrary (it->second.hModule);
+//         FreeLibrary (it->second.hModule);
       }
    }
 
