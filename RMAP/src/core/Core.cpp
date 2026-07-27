@@ -31,12 +31,6 @@ public:
    }
 };
 
-typedef struct tagLIBRARYINFO
-{
-   LIBRARY*                            pLibrary;
-}
-LIBRARYINFO;
-
 class APP::Impl
 {
 public:
@@ -106,7 +100,7 @@ public:
       return pNamespace;
    }
 
-   std::map<std::string, LIBRARYINFO>     mpLibrary;
+   std::map<std::string, LIBRARY*>     mpLibrary;
    SHAREDOBJECT<PLUGIN*, LIBRARY*>        sopPlugin;
    COLLECTION<std::string, NAMESPACE*>    cpNamespace;
    COLLECTION<LNG*, LNG*>* cpLnG;
@@ -318,13 +312,9 @@ void APP::Release (REQUIRE* pRequire)
 
 bool APP::LibraryInstall (LIBRARY* pLibrary)
 {
-   LIBRARYINFO li;
-
    if (m_pImpl->mpLibrary.find (pLibrary->sID ()) == m_pImpl->mpLibrary.end ())
    {
-      li.pLibrary = pLibrary;
-
-      m_pImpl->mpLibrary[pLibrary->sID ()] = li;
+      m_pImpl->mpLibrary[pLibrary->sID ()] = pLibrary;
    }
 
    return true;
@@ -333,12 +323,14 @@ bool APP::LibraryInstall (LIBRARY* pLibrary)
 void APP::LibraryUnstall (std::string sID)
 {
    LIBRARY* pLibrary = NULL;
-   std::map<std::string, LIBRARYINFO>::const_iterator it;
+   std::map<std::string, LIBRARY*>::const_iterator it;
 
    it = m_pImpl->mpLibrary.find (sID);
 
    if (it != m_pImpl->mpLibrary.end ())
    {
+      delete it->second;
+
       m_pImpl->mpLibrary.erase (it);
    }
 }
@@ -347,25 +339,14 @@ PLUGIN* APP::Plugin_Open (std::string sID)
 {
    PLUGIN* pPlugin = NULL;
    PLUGIN::IREFERENCE* pIReference;
-   std::map<std::string, LIBRARYINFO>::iterator it;
+   std::map<std::string, LIBRARY*>::iterator it;
    LIBRARY* pLibrary;
    
    it = m_pImpl->mpLibrary.find (sID);
 
-   if (it == m_pImpl->mpLibrary.end ())
-   {
-//      hModule = LoadLibraryA (sID.c_str ());
-
-      it = m_pImpl->mpLibrary.find (sID);
-   }
-//   else hModule = NULL;
-
    if (it != m_pImpl->mpLibrary.end ())
    {
-//      if (hModule != NULL)
-//         it->second.hModule = hModule;
-
-      pLibrary = it->second.pLibrary;
+      pLibrary = it->second;
 
       pIReference = new PLUGIN::IREFERENCE (pLibrary->sID ());
 
@@ -390,7 +371,7 @@ PLUGIN* APP::Plugin_Open (std::string sID)
 
 PLUGIN* APP::Plugin_Close (PLUGIN* pPlugin)
 {
-   std::map<std::string, LIBRARYINFO>::iterator it;
+   std::map<std::string, LIBRARY*>::iterator it;
    std::string sID = pPlugin->sID ();
 
    if ((pPlugin = m_pImpl->sopPlugin.Get (sID)) != NULL) // this provides mutual exclusion
@@ -403,10 +384,6 @@ PLUGIN* APP::Plugin_Close (PLUGIN* pPlugin)
    if (m_pImpl->sopPlugin.Close (sID) != NULL)
    {
       it = m_pImpl->mpLibrary.find (sID);
-//      if (it != m_pImpl->mpLibrary.end () && it->second.hModule != NULL)
-      {
-//         FreeLibrary (it->second.hModule);
-      }
    }
 
    pPlugin = NULL;
