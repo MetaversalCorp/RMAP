@@ -8,6 +8,18 @@ if(@RMAP_USE_SYSTEM_JSON@)
    find_dependency(nlohmann_json 3.11.3)
 endif()
 
+# asio and websocketpp are linked PUBLIC (their headers are pulled in through
+# RMAP's build), so when RMAP was built against external copies, their imported
+# targets (asio::asio, websocketpp::websocketpp) must be re-created here or the
+# RMAPTargets link interface references a non-existent target. Consumers must
+# have these packages on CMAKE_PREFIX_PATH (Sneeze points there via LIBS_DIR).
+if(@RMAP_USE_SYSTEM_ASIO@)
+   find_dependency(asio 1.30.2)
+endif()
+if(@RMAP_USE_SYSTEM_WEBSOCKETPP@)
+   find_dependency(websocketpp 0.8.2)
+endif()
+
 include("${CMAKE_CURRENT_LIST_DIR}/RMAPTargets.cmake")
 
 check_required_components(RMAP)

@@ -31,6 +31,15 @@ option(RMAP_USE_SYSTEM_BORINGSSL "Use an external BoringSSL (find_package) inste
 option(RMAP_USE_SYSTEM_CURL "Use an external libcurl (find_package) instead of the git-built copy" OFF)
 option(RMAP_USE_SYSTEM_SIOCLIENT "Use an external socket.io-client-cpp instead of the git-built copy" OFF)
 
+# When the *_USE_SYSTEM_* options above are ON for the COMPILED deps, RMAP does
+# not find_package them (they expose no CMake config in the layouts we ship);
+# instead point these at the parent build's install trees (each with include/
+# and lib/). Consumed by the else() branches of the BoringSSL/curl/sioclient
+# blocks below. Set by Sneeze's deps/rmap.cmake.
+set(RMAP_SYSTEM_BORINGSSL_ROOT "" CACHE PATH "Install tree of a prebuilt BoringSSL (when RMAP_USE_SYSTEM_BORINGSSL=ON)")
+set(RMAP_SYSTEM_CURL_ROOT      "" CACHE PATH "Install tree of a prebuilt libcurl (when RMAP_USE_SYSTEM_CURL=ON)")
+set(RMAP_SYSTEM_SIOCLIENT_ROOT "" CACHE PATH "Install tree of a prebuilt socket.io-client-cpp (when RMAP_USE_SYSTEM_SIOCLIENT=ON)")
+
 # ---------------------------------------------------------------------------
 # Modules. Each module is its own Visual Studio project:
 #   - RMAP (core) is a STATIC library and IS the single deliverable, RMAP.lib.
@@ -267,6 +276,31 @@ if(NOT RMAP_USE_SYSTEM_BORINGSSL)
    elseif(UNIX  AND  NOT APPLE)
       target_link_libraries(RMAP PRIVATE pthread dl)
    endif()
+else()
+   # System BoringSSL supplied by the parent build (e.g. Sneeze), which already
+   # builds one shared copy. Point at its install tree via
+   # RMAP_SYSTEM_BORINGSSL_ROOT (contains include/ and lib/). We mirror the
+   # git-built branch's wiring (build-only PUBLIC include so the service OBJECT
+   # libs compile against <openssl/...>; PRIVATE static-lib link kept out of the
+   # export set). RMAP_BORINGSSL_PREFIX is also set here so the system curl and
+   # socketio branches below can reuse it if only some deps are system-provided.
+   set(RMAP_BORINGSSL_PREFIX "${RMAP_SYSTEM_BORINGSSL_ROOT}")
+   set(RMAP_BORINGSSL_SSL_LIB
+      "${RMAP_BORINGSSL_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}ssl${CMAKE_STATIC_LIBRARY_SUFFIX}")
+   set(RMAP_BORINGSSL_CRYPTO_LIB
+      "${RMAP_BORINGSSL_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}crypto${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
+   target_include_directories(RMAP PUBLIC
+      $<BUILD_INTERFACE:${RMAP_BORINGSSL_PREFIX}/include>)
+
+   target_link_libraries(RMAP PRIVATE
+      "${RMAP_BORINGSSL_SSL_LIB}"
+      "${RMAP_BORINGSSL_CRYPTO_LIB}")
+   if(WIN32)
+      target_link_libraries(RMAP PRIVATE ws2_32 crypt32)
+   elseif(UNIX  AND  NOT APPLE)
+      target_link_libraries(RMAP PRIVATE pthread dl)
+   endif()
 endif()
 
 # ---------------------------------------------------------------------------
@@ -353,6 +387,27 @@ if(NOT RMAP_USE_SYSTEM_CURL)
 
    # Every TU including <curl/curl.h> needs this for a static libcurl. Build-only
    # so it stays out of RMAP's exported interface.
+   target_compile_definitions(RMAP PUBLIC $<BUILD_INTERFACE:CURL_STATICLIB>)
+
+   target_link_libraries(RMAP PRIVATE "${RMAP_CURL_LIB}")
+   if(WIN32)
+      target_link_libraries(RMAP PRIVATE ws2_32 wldap32 crypt32 normaliz)
+   endif()
+else()
+   # System libcurl supplied by the parent build (e.g. Sneeze). Point at its
+   # install tree via RMAP_SYSTEM_CURL_ROOT. Windows curl uses Schannel (OS
+   # stack); the static lib carries curl's -d debug postfix there. Mirrors the
+   # git-built branch (build-only PUBLIC include + CURL_STATICLIB; PRIVATE link).
+   set(RMAP_CURL_PREFIX "${RMAP_SYSTEM_CURL_ROOT}")
+   if(WIN32)
+      set(RMAP_CURL_LIB "${RMAP_CURL_PREFIX}/lib/libcurl$<$<CONFIG:Debug>:-d>${CMAKE_STATIC_LIBRARY_SUFFIX}")
+   else()
+      set(RMAP_CURL_LIB "${RMAP_CURL_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}curl${CMAKE_STATIC_LIBRARY_SUFFIX}")
+   endif()
+
+   target_include_directories(RMAP PUBLIC
+      $<BUILD_INTERFACE:${RMAP_CURL_PREFIX}/include>)
+
    target_compile_definitions(RMAP PUBLIC $<BUILD_INTERFACE:CURL_STATICLIB>)
 
    target_link_libraries(RMAP PRIVATE "${RMAP_CURL_LIB}")
@@ -455,6 +510,21 @@ if(NOT RMAP_USE_SYSTEM_SIOCLIENT)
    # PRIVATE link keeps the static lib out of RMAP's export set. sioclient_tls
    # pulls in BoringSSL (already linked above via the BoringSSL block) and the
    # Windows socket libs (ws2_32/crypt32, also already linked there).
+   target_link_libraries(RMAP PRIVATE "${RMAP_SIOCLIENT_LIB}")
+else()
+   # System socket.io-client-cpp (sioclient_tls) supplied by the parent build
+   # (e.g. Sneeze). Point at its install tree via RMAP_SYSTEM_SIOCLIENT_ROOT
+   # (flat include/ with sio_client.h etc.; lib/ with sioclient_tls). Mirrors
+   # the git-built branch (build-only PUBLIC include; PRIVATE link). Its
+   # BoringSSL / Windows socket-lib dependencies are already linked by the
+   # BoringSSL block above.
+   set(RMAP_SIOCLIENT_PREFIX "${RMAP_SYSTEM_SIOCLIENT_ROOT}")
+   set(RMAP_SIOCLIENT_LIB
+      "${RMAP_SIOCLIENT_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}sioclient_tls${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
+   target_include_directories(RMAP PUBLIC
+      $<BUILD_INTERFACE:${RMAP_SIOCLIENT_PREFIX}/include>)
+
    target_link_libraries(RMAP PRIVATE "${RMAP_SIOCLIENT_LIB}")
 endif()
 
