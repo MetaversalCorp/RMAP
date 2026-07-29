@@ -130,7 +130,7 @@ SERVICE::~SERVICE ()
 
 SERVICE::FACTORY* SERVICE::factory ()
 {
-   return new FACTORY ("SB");
+   return new FACTORY ("Statabase");
 }
 
 SERVICE::NETSETTINGS* SERVICE::pNetSettings () 
@@ -385,7 +385,7 @@ bool SE_Tick (RMAP::CORE::SERVICE* pService, void* pParam)
 
 bool NS_Tick (RMAP::CORE::NAMESPACE* pNamespace, void* pParam)
 {
-   pNamespace->Service_Enum ("SB", SE_Tick, pParam);
+   pNamespace->Service_Enum ("Statabase", SE_Tick, pParam);
 
    return true;
 }

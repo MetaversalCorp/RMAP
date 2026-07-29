@@ -63,7 +63,7 @@ SB_SBTIME::~SB_SBTIME ()
 
 SB_SBTIME::FACTORY* SB_SBTIME::factory ()
 {
-   return new FACTORY ("SB", "SBTime", MV_SERVICE_OBJECT_TIME, apAction);
+   return new FACTORY ("Statabase", "SBTime", MV_SERVICE_OBJECT_TIME, apAction);
 }
 
 void SB_SBTIME::Tick (int uCode, TIME tmServer)
