@@ -9,10 +9,11 @@
 #include "pch.h"
 
 using namespace RMAP;
-std::string LibrarySVC_SocketIO::sModuleName = "RMAP_SVC_SOCKETIO";
+std::string LibrarySVC_SocketIO::sModuleName = "Socket.IO";
 
 LibrarySVC_SocketIO::LibrarySVC_SocketIO (std::string sID, std::string sCopyright, std::string sTitle, std::string sVersion) :
-   RMAP::CORE::LIBRARY (sID, sCopyright, sTitle, sVersion)
+   RMAP::CORE::LIBRARY (sID, sCopyright, sTitle, sVersion),
+   m_pRequire (NULL)
 {
 }
 

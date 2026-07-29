@@ -9,10 +9,11 @@
 #include "pch.h"
 
 using namespace RMAP;
-std::string LibrarySVC_Rest::sModuleName = "SVC_REST";
+std::string LibrarySVC_Rest::sModuleName = "REST";
 
 LibrarySVC_Rest::LibrarySVC_Rest (std::string sID, std::string sCopyright, std::string sTitle, std::string sVersion) :
-   RMAP::CORE::LIBRARY (sID, sCopyright, sTitle, sVersion)
+   RMAP::CORE::LIBRARY (sID, sCopyright, sTitle, sVersion),
+   m_pRequire (NULL)
 {
    curl_global_init (CURL_GLOBAL_DEFAULT);
 }

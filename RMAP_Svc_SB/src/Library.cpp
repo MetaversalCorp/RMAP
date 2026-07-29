@@ -18,7 +18,7 @@
 using namespace RMAP;
 
 extern RMAP::SVC_SB::xTIME* g_pTime = NULL;
-std::string LibrarySVC_SB::sModuleName = "RMAP_SVC_SB";
+std::string LibrarySVC_SB::sModuleName = "Statabase";
 
 LibrarySVC_SB::LibrarySVC_SB (std::string sID, std::string sCopyright, std::string sTitle, std::string sVersion) :
    RMAP::CORE::LIBRARY (sID, sCopyright, sTitle, sVersion),
