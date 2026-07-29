@@ -59,7 +59,7 @@ public:
 
    uint16_t Size (ordered_json& jSrc)
    {
-      return m_wSize_Full + ((m_wSize_Variable > 0) ? (m_wSize_Variable * jSrc[m_sVarSize.c_str ()]) : 0);
+      return m_wSize_Full + ((m_wSize_Variable > 0) ? static_cast<uint16_t> (m_wSize_Variable * jSrc[m_sVarSize.c_str ()].template get<int> ()) : 0);
    }
 
    bool Write_Copy (BYTESTREAM& BS, int wOffset_Base, ordered_json& jSrc, ordered_json& jProperties)
@@ -89,7 +89,7 @@ public:
                nType &= 0xF;
 
                if (jItem.size () == 3)
-                  nCount = jSrc[jItem[2].template get<std::string> ()];
+                  nCount = jSrc[jItem[2].template get<std::string> ()].template get<int> ();
                else
                   nCount = jItem[1].template get <int> ();
 
@@ -204,7 +204,7 @@ public:
                nType &= 0xF;
 
                if (jItem.size () == 3)
-                  nCount = jSrc[jItem[2].template get<std::string> ()];
+                  nCount = jSrc[jItem[2].template get<std::string> ()].template get<int> ();
                else
                   nCount = jItem[1].template get <int> ();
 
