@@ -1,6 +1,6 @@
 /*******************************************************************************************************************************
 **                                                                                                                            **
-**                                               MVIO_cpp : Client.cpp                                                        **
+**                                        RMAP_Svc_SocketIO : Client.cpp                                                      **
 **                                                                                                                            **
 ********************************************************************************************************************************
 **                              Copyright 2014-2024 Metaversal Corporation. All rights reserved.                              **
@@ -183,7 +183,7 @@ bool CLIENT::IACTION::IsSuccess ()
 *******************************************************************************************************************************/
 
 CLIENT::IREFERENCE::IREFERENCE (uint64_t twClientIx) :
-   RMAP::CORE::CLIENT::IREFERENCE ("MVIO", twClientIx)
+   RMAP::CORE::CLIENT::IREFERENCE ("Socket.IO", twClientIx)
 {
 }
 

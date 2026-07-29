@@ -1,6 +1,6 @@
 /*******************************************************************************************************************************
 **                                                                                                                            **
-**                                               MVIO_cpp : Source_IO_SESSION_NULL.cpp                                        **
+**                                  RMAP_Svc_SocketIO  : Source_IO_Session_Null.cpp                                           **
 **                                                                                                                            **
 ********************************************************************************************************************************
 **                              Copyright 2014-2024 Metaversal Corporation. All rights reserved.                              **
@@ -51,7 +51,7 @@ void IO_SESSION_NULL::init ()
 
 IO_SESSION_NULL::FACTORY* IO_SESSION_NULL::factory ()
 {
-   return new FACTORY ("MVIO", "Session_Null", aAction);
+   return new FACTORY ("Socket.IO", "Session_Null", aAction);
 }
 
 // ===== Client Methods =====================================================================================================

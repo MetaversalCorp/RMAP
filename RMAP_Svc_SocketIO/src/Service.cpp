@@ -1,6 +1,6 @@
 /*******************************************************************************************************************************
 **                                                                                                                            **
-**                                                    MVSB_cpp : Service.cpp                                                  **
+**                                        RMAP_Svc_SocketIO : Service.cpp                                                     **
 **                                                                                                                            **
 ********************************************************************************************************************************
 **                              Copyright 2014-2024 Metaversal Corporation. All rights reserved.                              **
@@ -92,7 +92,7 @@ SERVICE::~SERVICE ()
 
 SERVICE::FACTORY* SERVICE::factory ()
 {
-   return new FACTORY ("MVIO");
+   return new FACTORY ("Socket.IO");
 }
 
 SERVICE::NETSETTINGS* SERVICE::pNetSettings () 
