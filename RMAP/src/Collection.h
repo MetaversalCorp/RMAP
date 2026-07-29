@@ -46,7 +46,7 @@ public:
    class IFIND
    {
    public:
-      virtual void Find (V pValue) = 0;
+      virtual bool Find (V pValue) = 0;
    };
 
    typedef struct tagPAIR* PPAIR;
@@ -269,7 +269,7 @@ public:
       m_CS.lock ();
       {
          for (nIndex = 0; nIndex < m_apPair.size (); nIndex++)
-            if (pFind.Find (m_apPair[nIndex].pValue) != false)
+            if (pFind->Find (m_apPair[nIndex].pValue) != false)
                break;
 
          if (nIndex < m_apPair.size ())

@@ -150,7 +150,7 @@ namespace RMAP
             Impl* m_pImpl;
 
          public:
-            enum OBJECTIX : unsigned __int64
+            enum OBJECTIX : uint64_t
             {
                BANK_NULL        = 0,
                OBJECTIX_NULL    = 0,

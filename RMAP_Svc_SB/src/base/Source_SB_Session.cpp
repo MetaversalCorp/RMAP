@@ -134,7 +134,7 @@ void SB_SESSION::Progress (RMAP::CORE::PROGRESS* pProgress)
 
    switch (pProgressSB->nProgress)
    {
-   case pClientSB->SOCKETCONNECT_RESULT:
+   case CLIENT::SOCKETCONNECT_RESULT:
       if (pProgressSB->bResult != false)
       {
          m_pImpl->nReconnect = 0;
@@ -156,7 +156,7 @@ void SB_SESSION::Progress (RMAP::CORE::PROGRESS* pProgress)
       }
       break;
 
-   case pClientSB->SOCKETDISCONNECT_RESULT:
+   case CLIENT::SOCKETDISCONNECT_RESULT:
       if (pProgressSB->bResult != false)
       {
          if (pProgressSB->bVoluntary == false)
@@ -173,7 +173,7 @@ void SB_SESSION::Progress (RMAP::CORE::PROGRESS* pProgress)
       }
       break;
 
-   case pClientSB->SYSTEMCONNECT_RESULT:
+   case CLIENT::SYSTEMCONNECT_RESULT:
       if (pProgressSB->bResult != false)
       {
          if (pProgressSB->bVoluntary != false)
@@ -196,7 +196,7 @@ void SB_SESSION::Progress (RMAP::CORE::PROGRESS* pProgress)
       else;
       break;
 
-   case pClientSB->SYSTEMDISCONNECT_RESULT:
+   case CLIENT::SYSTEMDISCONNECT_RESULT:
       if (pProgressSB->bResult != false)
       {
          if (pProgressSB->bVoluntary != false)
@@ -209,7 +209,7 @@ void SB_SESSION::Progress (RMAP::CORE::PROGRESS* pProgress)
       }
       break;
 
-   case pClientSB->LOGIN_RESULT:
+   case CLIENT::LOGIN_RESULT:
       if (pProgressSB->bResult != false)
       {
          if (pProgressSB->bVoluntary == false)
@@ -226,7 +226,7 @@ void SB_SESSION::Progress (RMAP::CORE::PROGRESS* pProgress)
       }
       break;
 
-   case pClientSB->LOGOUT_RESULT:
+   case CLIENT::LOGOUT_RESULT:
       if (pProgressSB->bResult != false)
       {
          if (pProgressSB->bVoluntary == false)

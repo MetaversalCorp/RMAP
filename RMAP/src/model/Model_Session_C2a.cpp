@@ -146,7 +146,7 @@ bool MODEL_SESSION_C2A::Login (std::string sSession)
 
    std::map<std::string, std::string> apSession = UTILS::Decode (sSession);
 
-   return pSourceSession->Login (apSession["contact"], UTILS::UTF8_to_Wchar (apSession["password"].c_str ()), apSession["remember"]._Equal ("true"));
+   return pSourceSession->Login (apSession["contact"], UTILS::UTF8_to_Wchar (apSession["password"].c_str ()), apSession["remember"] == "true");
 }
 
 bool MODEL_SESSION_C2A::Authenticate (bool bPublic)

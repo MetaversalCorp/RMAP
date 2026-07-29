@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <iostream>
 #include <fstream>
+#include <thread>
 
 #include "Collection.h"
 #include <RMAP.h>
