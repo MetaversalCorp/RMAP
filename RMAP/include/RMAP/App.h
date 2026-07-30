@@ -292,9 +292,9 @@ namespace RMAP
          REQUIRE* Require (const std::string& sSrc_List, const std::string& sID_Service, const std::string& sNamespace);
          void     Release (REQUIRE* pRequire);
 
-         PLUGIN*        Plugin_Open (std::string sID);
+         PLUGIN*        Plugin_Open (const std::string& sID);
          PLUGIN*        Plugin_Close (PLUGIN* pPlugin);
-         FACTORY*       Plugin_Factory (std::string sType, std::string sID_Factory);
+         FACTORY*       Plugin_Factory (const std::string& sType, const std::string& sID_Factory);
 
          NAMESPACE*    Namespace_Add (std::string sNamespace);
          int           Namespace_Length ();

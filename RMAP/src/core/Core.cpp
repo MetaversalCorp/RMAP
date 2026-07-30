@@ -335,7 +335,7 @@ void APP::LibraryUnstall (std::string sID)
    }
 }
 
-PLUGIN* APP::Plugin_Open (std::string sID)
+PLUGIN* APP::Plugin_Open (const std::string& sID)
 {
    PLUGIN* pPlugin = NULL;
    PLUGIN::IREFERENCE* pIReference;
@@ -391,7 +391,7 @@ PLUGIN* APP::Plugin_Close (PLUGIN* pPlugin)
    return pPlugin;
 }
 
-FACTORY* APP::Plugin_Factory (std::string sType, std::string sID_Factory)
+FACTORY* APP::Plugin_Factory (const std::string& sType, const std::string& sID_Factory)
 {
    RMAP::CORE::FACTORY* pFactory = NULL;
    std::vector<std::string> asID;
