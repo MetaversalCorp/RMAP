@@ -453,7 +453,32 @@ if(NOT RMAP_USE_SYSTEM_SIOCLIENT)
       set(_sioclient_git_args
          GIT_REPOSITORY https://github.com/socketio/socket.io-client-cpp.git
          GIT_TAG        3b7be7e4173b5bdeed393966e3274f65d513a280
-         GIT_SUBMODULES "lib/websocketpp" "lib/rapidjson" "lib/asio")
+         # Only rapidjson is taken from socket.io. Its bundled asio (1.11) and
+         # websocketpp submodules are deliberately NOT fetched - they are replaced
+         # below with the SAME pinned copies RMAP uses (see PATCH_COMMAND).
+         GIT_SUBMODULES "lib/rapidjson")
+   endif()
+
+   # ---- Version-unify socket.io's header-only deps with the rest of the stack ----
+   # socket.io-client-cpp vendors its OWN asio (1.11.0, 2017) and websocketpp.
+   # Linking that sioclient_tls alongside the rest of RMAP - which is compiled
+   # against asio 1.30.2 + websocketpp 0.8.2 - puts two incompatible asio layouts
+   # into one binary. Both emit the same asio:: symbols, so the linker folds them
+   # to one copy and an io_context/strand built by one asio has its win_mutex read
+   # at the wrong offset by the other -> crash in asio::detail::win_mutex::lock()
+   # the moment the socket.io run loop starts. Overwrite sioclient's bundled asio +
+   # websocketpp headers with RMAP's pinned copies so the whole link resolves to a
+   # single asio/websocketpp (rapidjson is used nowhere else, so it stays bundled).
+   set(_sioclient_patch_cmd)
+   if(DEFINED RMAP_ASIO_DIR AND DEFINED RMAP_WEBSOCKETPP_DIR)
+      set(_sioclient_patch_cmd
+         PATCH_COMMAND
+            ${CMAKE_COMMAND} -E rm -rf <SOURCE_DIR>/lib/asio
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+               ${RMAP_ASIO_DIR}/asio/include <SOURCE_DIR>/lib/asio/asio/include
+            COMMAND ${CMAKE_COMMAND} -E rm -rf <SOURCE_DIR>/lib/websocketpp
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+               ${RMAP_WEBSOCKETPP_DIR}/websocketpp <SOURCE_DIR>/lib/websocketpp/websocketpp)
    endif()
 
    # MSVC flags for socket.io's own build. Because CMAKE_CXX_FLAGS here REPLACES
@@ -476,6 +501,7 @@ if(NOT RMAP_USE_SYSTEM_SIOCLIENT)
       SOURCE_DIR "${RMAP_SIOCLIENT_DIR}"
       BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/socketio/build"
       UPDATE_DISCONNECTED ON
+      ${_sioclient_patch_cmd}
       CMAKE_ARGS
          -DCMAKE_INSTALL_PREFIX=${RMAP_SIOCLIENT_PREFIX}
          -DCMAKE_BUILD_TYPE=$<CONFIG>
@@ -498,6 +524,15 @@ if(NOT RMAP_USE_SYSTEM_SIOCLIENT)
    # sioclient_tls needs BoringSSL's headers/libs at configure/link time.
    if(TARGET boringssl_build)
       add_dependencies(sioclient_build boringssl_build)
+   endif()
+
+   # The PATCH_COMMAND copies from RMAP's git-fetched asio / websocketpp trees, so
+   # those must be populated before sioclient is patched.
+   if(TARGET asio_fetch)
+      add_dependencies(sioclient_build asio_fetch)
+   endif()
+   if(TARGET websocketpp_fetch)
+      add_dependencies(sioclient_build websocketpp_fetch)
    endif()
 
    add_dependencies(RMAP sioclient_build)
