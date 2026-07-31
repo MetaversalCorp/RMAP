@@ -301,12 +301,12 @@ void CLIENT::Progress (RMAP::CORE::PROGRESS* pProgress)
 
 bool CLIENT::IsDisconnected ()
 {
-   return false;
+   return (ReadyState () == eSTATE::SOCKETDISCONNECTED);
 }
 
 bool CLIENT::IsConnected ()
 {
-   return true;
+   return (ReadyState () >= eSTATE::LOGGEDOUT);
 }
 
 bool CLIENT::IsLoggedOut ()
