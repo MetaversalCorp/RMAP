@@ -188,3 +188,27 @@ std::vector<std::wstring> UTILS::splitString (const std::wstring& wsInput, wchar
 
    return aToken;
 }
+
+void UTILS::WString_to_Uint16 (const std::wstring& sSrc, uint16_t* pwDst, int nLength)
+{
+   int nCopyLength = std::min (static_cast<int>(sSrc.length ()), nLength - 1);
+
+   for (int i = 0; i < nCopyLength; ++i)
+   {
+      pwDst[i] = static_cast<uint16_t> (sSrc[i]);
+   }
+
+   pwDst[nCopyLength] = 0;
+}
+
+void UTILS::String_to_Uint8 (const std::string& sSrc, uint8_t* pbDst, int nLength)
+{
+   int nCopyLength = std::min (static_cast<int> (sSrc.length ()), nLength - 1);
+
+   for (int i = 0; i < nCopyLength; ++i)
+   {
+      pbDst[i] = static_cast<uint16_t> (sSrc[i]);
+   }
+
+   pbDst[nCopyLength] = 0;
+}
