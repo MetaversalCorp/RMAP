@@ -15,21 +15,17 @@ using namespace RMAP::CORE::MEM;
 *******************************************************************************************************************************/
 
 OBJECTHEAD::OBJECTHEAD () :
-   twParentIx (0),
-   twObjectIx (0),
-   wClass_Parent (0),
-   wClass_Object (0),
+   Parent ({}),
+   Self ({}),
    wFlags (0)
 {
 }
 
 OBJECTHEAD::OBJECTHEAD (uint64_t twParentIx, uint64_t twObjectIx, uint16_t wClass_Parent, uint16_t wClass_Object, uint16_t wFlags) :
-   twParentIx (twParentIx),
-   twObjectIx (twObjectIx),
-   wClass_Parent (wClass_Parent),
-   wClass_Object (wClass_Object),
    wFlags (wFlags)
 {
+   Parent.qwComposed = OBJECTIX_COMPOSE (wClass_Parent, twParentIx);
+   Self  .qwComposed = OBJECTIX_COMPOSE (wClass_Object, twObjectIx);
 }
 
 OBJECTHEAD::~OBJECTHEAD ()
@@ -77,21 +73,18 @@ void SOURCE::initialize (MODEL* pModel, uint64_t twObjectIx, uint64_t twChildIx)
 {
    RMAP::CORE::SOURCE::initialize (pModel);
 
-   m_pImpl->pObjectHead->twParentIx = m_pImpl->bIndependent ? 0 : twObjectIx;
-   m_pImpl->pObjectHead->twObjectIx = m_pImpl->bIndependent ? twObjectIx : twChildIx;
+   m_pImpl->pObjectHead->Parent.qwComposed = OBJECTIX_COMPOSE (m_pImpl->pObjectHead->Parent.Class (), m_pImpl->bIndependent ? 0 : twObjectIx);
+   m_pImpl->pObjectHead->Self  .qwComposed = OBJECTIX_COMPOSE (m_pImpl->pObjectHead->Self  .Class (), m_pImpl->bIndependent ? twObjectIx : twChildIx);
 }
 
 bool        SOURCE::bIndependent () { return m_pImpl->bIndependent; }
 
-OBJECTHEAD* SOURCE::pObjectHead ()  
-{ 
-   return m_pImpl->pObjectHead;  
-}
-
-uint64_t SOURCE::twParentIx ()      { return m_pImpl->pObjectHead->twParentIx;      }
-uint64_t SOURCE::twObjectIx ()      { return m_pImpl->pObjectHead->twObjectIx;      }
-uint16_t SOURCE::wClass_Parent ()   { return m_pImpl->pObjectHead->wClass_Parent;   }
-uint16_t SOURCE::wClass_Object ()   { return m_pImpl->pObjectHead->wClass_Object;   }
+// DEPRECATE THIS
+OBJECTHEAD* SOURCE::pObjectHead ()  { return m_pImpl->pObjectHead;                     }
+uint64_t SOURCE::twParentIx ()      { return m_pImpl->pObjectHead->Parent.ObjectIx (); }
+uint64_t SOURCE::twObjectIx ()      { return m_pImpl->pObjectHead->Self.ObjectIx ();   }
+uint16_t SOURCE::wClass_Parent ()   { return m_pImpl->pObjectHead->Parent.Class ();    }
+uint16_t SOURCE::wClass_Object ()   { return m_pImpl->pObjectHead->Self.Class ();      }
 
 /*******************************************************************************************************************************
 **                                                     CLASS (SOURCE::REFERENCE)                                              **

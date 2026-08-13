@@ -66,16 +66,15 @@ int RECOVER::Object_Recover (uint16_t wClass, BYTESTREAM* pByteStream, int wSize
 
    offset = pByteStream->Offset ();
 
-   m_pImpl->pObjectHead->twParentIx     = pByteStream->Read_TWORD ();
-   m_pImpl->pObjectHead->wClass_Parent  = pByteStream->Read_WORD  ();
-   m_pImpl->pObjectHead->twObjectIx     = pByteStream->Read_TWORD ();
-   m_pImpl->pObjectHead->wClass_Object  = pByteStream->Read_WORD  ();
+   m_pImpl->pObjectHead->Parent.qwComposed = pByteStream->Read_QWORD ();
+   m_pImpl->pObjectHead->Self  .qwComposed = pByteStream->Read_QWORD ();
+
    m_pImpl->pObjectHead->twEventIz      = pByteStream->Read_TWORD ();
-   m_pImpl->pObjectHead->wFlags         = pByteStream->Read_WORD  ();                               // this needs to be renamed to wFlags !!!!!!!!!!!!!!!!!!!!
+   m_pImpl->pObjectHead->wFlags         = pByteStream->Read_WORD  ();
 
    if (pByteStream->IsError () == false && pByteStream->Offset () - offset == SIZEOF__SBD_OBJECT_HEAD)
    {
-      if (m_pImpl->pObjectHead->wClass_Object == wClass) // sanity check
+      if (m_pImpl->pObjectHead->Self.Class () == wClass) // sanity check
       {
          m_pImpl->pClient->pMem ()->Object_Update (m_pImpl->pObjectHead, this, pByteStream);
 

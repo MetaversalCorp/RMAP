@@ -85,7 +85,7 @@ void OBJECTBANK_DEP::Parent_Close (uint64_t twParentIx)
 
 uint64_t OBJECTBANK_DEP::Count (SOURCE* pParent)
 {
-   std::map<uint64_t, SOURCE*> apObject = Parent_Open (pParent->pObjectHead ()->twObjectIx);
+   std::map<uint64_t, SOURCE*> apObject = Parent_Open (pParent->pObjectHead ()->Self.ObjectIx ());
 
    return apObject.size ();
 }
@@ -94,7 +94,7 @@ uint64_t OBJECTBANK_DEP::Count (SOURCE* pParent)
 
 SOURCE* OBJECTBANK_DEP::Get (SOURCE* pParent, uint64_t twObjectIx)
 {
-   std::map<uint64_t, SOURCE*> apObject = Parent_Open (pParent->pObjectHead ()->twObjectIx);
+   std::map<uint64_t, SOURCE*> apObject = Parent_Open (pParent->pObjectHead ()->Self.ObjectIx ());
    SOURCE* pObject = NULL;
 
    if (apObject.find (twObjectIx) != apObject.end ())
@@ -107,7 +107,7 @@ SOURCE* OBJECTBANK_DEP::Get (SOURCE* pParent, uint64_t twObjectIx)
 
 SOURCE* OBJECTBANK_DEP::Index (SOURCE* pParent, int64_t nIndex)
 {
-   std::map<uint64_t, SOURCE*> apObject = Parent_Open (pParent->pObjectHead ()->twObjectIx);
+   std::map<uint64_t, SOURCE*> apObject = Parent_Open (pParent->pObjectHead ()->Self.ObjectIx ());
    SOURCE* pObject = NULL;
 
    for (auto const& x : apObject)
@@ -123,7 +123,7 @@ SOURCE* OBJECTBANK_DEP::Index (SOURCE* pParent, int64_t nIndex)
 
 SOURCE* OBJECTBANK_DEP::Next (SOURCE* pParent, uint64_t twObjectIx)
 {
-   std::map<uint64_t, SOURCE*> apObject = Parent_Open (pParent->pObjectHead ()->twObjectIx);
+   std::map<uint64_t, SOURCE*> apObject = Parent_Open (pParent->pObjectHead ()->Self.ObjectIx ());
    SOURCE* pObject = NULL;
 
    if (twObjectIx >= OBJECTBANK::OBJECTIX_NULL && twObjectIx < OBJECTBANK::OBJECTIX_MAX)
@@ -144,7 +144,7 @@ SOURCE* OBJECTBANK_DEP::Next (SOURCE* pParent, uint64_t twObjectIx)
 int OBJECTBANK_DEP::Enum (SOURCE* pParent, IOBJECTBANK* pIObjectBank, void* pParam)
 {
    int nResult = -1;
-   std::map<uint64_t, SOURCE*> apObject = Parent_Open (pParent->pObjectHead ()->twObjectIx);
+   std::map<uint64_t, SOURCE*> apObject = Parent_Open (pParent->pObjectHead ()->Self.ObjectIx ());
 
    for (auto const& x : apObject)
    {
@@ -160,15 +160,15 @@ int OBJECTBANK_DEP::Enum (SOURCE* pParent, IOBJECTBANK* pIObjectBank, void* pPar
 bool OBJECTBANK_DEP::Insert (SOURCE* pObject)
 {
    bool bResult = false;
-   std::map<uint64_t, SOURCE*> apObject = Parent_Open (pObject->pObjectHead ()->twParentIx);
+   std::map<uint64_t, SOURCE*> apObject = Parent_Open (pObject->pObjectHead ()->Parent.ObjectIx ());
 
-   if (pObject->pObjectHead ()->twParentIx > OBJECTBANK::OBJECTIX_NULL && pObject->pObjectHead ()->twParentIx < OBJECTBANK::OBJECTIX_MAX)
+   if (pObject->pObjectHead ()->Parent.ObjectIx () > OBJECTBANK::OBJECTIX_NULL && pObject->pObjectHead ()->Parent.ObjectIx () < OBJECTBANK::OBJECTIX_MAX)
    {
-      if (pObject->pObjectHead ()->twObjectIx > OBJECTBANK::OBJECTIX_NULL && pObject->pObjectHead ()->twObjectIx < OBJECTBANK::OBJECTIX_MAX)
+      if (pObject->pObjectHead ()->Self.ObjectIx () > OBJECTBANK::OBJECTIX_NULL && pObject->pObjectHead ()->Self.ObjectIx () < OBJECTBANK::OBJECTIX_MAX)
       {
-         if (apObject.find (pObject->pObjectHead ()->twObjectIx) == apObject.end ())
+         if (apObject.find (pObject->pObjectHead ()->Self.ObjectIx ()) == apObject.end ())
          {
-            apObject[pObject->pObjectHead ()->twObjectIx] = pObject;
+            apObject[pObject->pObjectHead ()->Self.ObjectIx ()] = pObject;
 
             bResult = true;
          }
@@ -181,8 +181,8 @@ bool OBJECTBANK_DEP::Insert (SOURCE* pObject)
 bool OBJECTBANK_DEP::Delete (SOURCE* pObject)
 {
    bool bResult = false;
-   std::map<uint64_t, SOURCE*> apObject = Parent_Open (pObject->pObjectHead ()->twParentIx);
-   uint64_t twObjectIx = pObject->pObjectHead ()->twObjectIx;
+   std::map<uint64_t, SOURCE*> apObject = Parent_Open (pObject->pObjectHead ()->Parent.ObjectIx ());
+   uint64_t twObjectIx = pObject->pObjectHead ()->Self.ObjectIx ();
 
    if (apObject.find (twObjectIx) != apObject.end ())
    {

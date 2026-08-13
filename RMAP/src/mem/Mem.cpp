@@ -250,8 +250,7 @@ SOURCE* MEM::Parent_Get (OBJECTBANK* pObjectBank_Parent, uint16_t wClass_Parent,
    {
       pParent = m_pImpl->pParent_X;
 
-      pParent->pObjectHead ()->wClass_Object = wClass_Parent;
-      pParent->pObjectHead ()->twObjectIx    = twParentIx;
+      pParent->pObjectHead ()->Self.qwComposed = OBJECTIX_COMPOSE (wClass_Parent, twParentIx);
    }
 
    return pParent;
@@ -271,13 +270,13 @@ bool MEM::Object_Update (OBJECTHEAD* pObjectHead, IMEM* pICB, void* pParam)
 
    if (pObjectHead->wFlags == MVO_OBJECT_HEAD_FLAG::SUBSCRIBE_PARTIAL || pObjectHead->wFlags == MVO_OBJECT_HEAD_FLAG::SUBSCRIBE_FULL)
    {
-      pObjectBank_Parent = ObjectBank (pObjectHead->wClass_Parent);                                                  // this can fail ...
+      pObjectBank_Parent = ObjectBank (pObjectHead->Parent.Class ());                                                  // this can fail ...
 
-      if ((pParent = Parent_Get (pObjectBank_Parent, pObjectHead->wClass_Parent, pObjectHead->twParentIx)) != NULL)   // but this never fails
+      if ((pParent = Parent_Get (pObjectBank_Parent, pObjectHead->Parent.Class (), pObjectHead->Parent.ObjectIx ())) != NULL)   // but this never fails
       {
-         if ((pObjectBank_Object = ObjectBank (pObjectHead->wClass_Object)) != NULL)
+         if ((pObjectBank_Object = ObjectBank (pObjectHead->Self.Class ())) != NULL)
          {
-            if ((pObject = pObjectBank_Object->Get (pParent, pObjectHead->twObjectIx)) == NULL || (pObject->pObjectHead ()->wFlags & MVO_OBJECT_HEAD_FLAG::SUBSCRIBE_MASK) == 0)
+            if ((pObject = pObjectBank_Object->Get (pParent, pObjectHead->Self.ObjectIx ())) == NULL || (pObject->pObjectHead ()->wFlags & MVO_OBJECT_HEAD_FLAG::SUBSCRIBE_MASK) == 0)
             {
                if (pObject != NULL)
                {
@@ -287,8 +286,7 @@ bool MEM::Object_Update (OBJECTHEAD* pObjectHead, IMEM* pICB, void* pParam)
 
                   // Also, the parent values can't be trusted, so we'll update them now...
 
-                  pObject->pObjectHead ()->wClass_Parent = pObjectHead->wClass_Parent;
-                  pObject->pObjectHead ()->twParentIx = pObjectHead->twParentIx;
+                  pObject->pObjectHead ()->Parent.qwComposed = pObjectHead->Parent.qwComposed;
                }
 
                bInsert = true;
@@ -297,9 +295,9 @@ bool MEM::Object_Update (OBJECTHEAD* pObjectHead, IMEM* pICB, void* pParam)
                bDiscard = false;
 
                if (pObjectBank_Parent)
-                  pObjectBank_Parent->Child_Set (pObjectHead->wClass_Object);
+                  pObjectBank_Parent->Child_Set (pObjectHead->Self.Class ());
 
-               pObject = pObjectBank_Object->Object_Open (pObjectHead->wClass_Parent, pObjectHead->twParentIx, pObjectHead->wClass_Object, pObjectHead->twObjectIx);
+               pObject = pObjectBank_Object->Object_Open (pObjectHead->Parent.Class (), pObjectHead->Parent.ObjectIx (), pObjectHead->Self.Class (), pObjectHead->Self.ObjectIx ());
             }
             else
             {
@@ -389,9 +387,9 @@ bool MEM::Object_Change (uint16_t wClass_Object, uint64_t twObjectIx, uint16_t w
          if (((pObject->pObjectHead ()->wFlags & MVO_OBJECT_HEAD_FLAG::SUBSCRIBE_PARTIAL) != 0 && (pObject->pObjectHead ()->wFlags & MVO_OBJECT_HEAD_FLAG::EXPIRED_PARTIAL) == 0 && bPartial != false)
             || ((pObject->pObjectHead ()->wFlags & MVO_OBJECT_HEAD_FLAG::SUBSCRIBE_FULL) != 0 && (pObject->pObjectHead ()->wFlags & MVO_OBJECT_HEAD_FLAG::EXPIRED_FULL) == 0))
          {
-            pObjectBank_Parent = ObjectBank (pObject->pObjectHead ()->wClass_Parent);    // this can fail ...
+            pObjectBank_Parent = ObjectBank (pObject->pObjectHead ()->Parent.Class ());    // this can fail ...
 
-            if ((pParent = Parent_Get (pObjectBank_Parent, pObject->pObjectHead ()->wClass_Parent, pObject->pObjectHead ()->twParentIx)) != NULL)   // but this never fails
+            if ((pParent = Parent_Get (pObjectBank_Parent, pObject->pObjectHead ()->Parent.Class (), pObject->pObjectHead ()->Parent.ObjectIx ())) != NULL)   // but this never fails
             {
                if (wClass_Child != BANK_NULL && bOpen == false)
                {
@@ -429,7 +427,7 @@ bool MEM::Object_Change (uint16_t wClass_Object, uint64_t twObjectIx, uint16_t w
                      {
                         pChild = pObjectBank_Child->Object_Open (wClass_Object, twObjectIx, wClass_Child, twChildIx);
                      }
-                     else if (pChild->pObjectHead ()->wClass_Parent != 0)
+                     else if (pChild->pObjectHead ()->Parent.Class () != 0)
                         bOpen = false;
 
                      if (pChild != NULL)
@@ -437,8 +435,7 @@ bool MEM::Object_Change (uint16_t wClass_Object, uint64_t twObjectIx, uint16_t w
                         // It is possible that external application opened the model precedent to data being sent from the server.
                         // Therefore, the parent values can't be trusted, so we'll update them now...
 
-                        pChild->pObjectHead ()->wClass_Parent  = wClass_Object;
-                        pChild->pObjectHead ()->twParentIx     = twObjectIx;
+                        pChild->pObjectHead ()->Parent.qwComposed = OBJECTIX_COMPOSE (wClass_Object, twObjectIx);
 
                         pChild->pObjectHead ()->wFlags |= MVO_OBJECT_HEAD_FLAG::SUBSCRIBE_PARTIAL;
 
@@ -472,8 +469,7 @@ bool MEM::Object_Change (uint16_t wClass_Object, uint64_t twObjectIx, uint16_t w
                         {
                            // See notes in Update regarding opening of an existing model. We need to restore to the pre-updated state.
 
-                           pChild->pObjectHead ()->wClass_Parent  = 0;
-                           pChild->pObjectHead ()->twParentIx     = 0;
+                           pChild->pObjectHead ()->Parent.qwComposed = OBJECTIX_COMPOSE (0, 0);
                         }
                      }
                   }
@@ -520,7 +516,7 @@ bool MEM::Object_Close_Partial (SOURCE* pObject, SOURCE* pChild)
 
       if ((pChild->pObjectHead ()->wFlags & MVO_OBJECT_HEAD_FLAG::SUBSCRIBE_MASK) == 0)
       {
-         m_pImpl->aObjectBank[pChild->pObjectHead ()->wClass_Object]->Object_Close (pChild);
+         m_pImpl->aObjectBank[pChild->pObjectHead ()->Self.Class ()]->Object_Close (pChild);
       }
 
       bResult = true;
@@ -535,8 +531,8 @@ bool MEM::Object_Close_Full (SOURCE* pObject)
 
    if ((pObject->pObjectHead ()->wFlags & MVO_OBJECT_HEAD_FLAG::SUBSCRIBE_FULL) != 0)
    {
-      OBJECTBANK* pObjectBank_Parent = ObjectBank (pObject->pObjectHead ()->wClass_Parent);    // this can fail ...
-      SOURCE* pParent = Parent_Get (pObjectBank_Parent, pObject->pObjectHead ()->wClass_Parent, pObject->pObjectHead ()->twParentIx);   // but this never fails
+      OBJECTBANK* pObjectBank_Parent = ObjectBank (pObject->pObjectHead ()->Parent.Class ());    // this can fail ...
+      SOURCE* pParent = Parent_Get (pObjectBank_Parent, pObject->pObjectHead ()->Parent.Class (), pObject->pObjectHead ()->Parent.ObjectIx ());   // but this never fails
 
       if ((pObject->pObjectHead ()->wFlags & MVO_OBJECT_HEAD_FLAG::SUBSCRIBE_PARTIAL) == 0)
       {
@@ -556,7 +552,7 @@ bool MEM::Object_Close_Full (SOURCE* pObject)
 
       if ((pObject->pObjectHead ()->wFlags & MVO_OBJECT_HEAD_FLAG::SUBSCRIBE_MASK) == 0)
       {
-         m_pImpl->aObjectBank[pObject->pObjectHead ()->wClass_Object]->Object_Close (pObject);
+         m_pImpl->aObjectBank[pObject->pObjectHead ()->Self.Class ()]->Object_Close (pObject);
       }
 
       bResult = true;
@@ -614,7 +610,7 @@ bool MEM::Object_Expire_Full (SOURCE* pObject)
 
          pObject->Recovering ();
 
-         m_pImpl->aObjectBank[pObject->pObjectHead ()->wClass_Object]->Child_Enum (pIOBMem, this);
+         m_pImpl->aObjectBank[pObject->pObjectHead ()->Self.Class ()]->Child_Enum (pIOBMem, this);
 
          pObject->pObjectHead ()->wFlags |= MVO_OBJECT_HEAD_FLAG::EXPIRED_FULL;
       }
@@ -638,7 +634,7 @@ bool MEM::Object_Purge_Full (SOURCE* pObject)
 
          pObject->pObjectHead ()->wFlags |= MVO_OBJECT_HEAD_FLAG::CLIENT_RECOVERED;
 
-         m_pImpl->aObjectBank[pObject->pObjectHead ()->wClass_Object]->Child_Enum (pIOBMem, this);
+         m_pImpl->aObjectBank[pObject->pObjectHead ()->Self.Class ()]->Child_Enum (pIOBMem, this);
 
          if ((pObject->pObjectHead ()->wFlags & MVO_OBJECT_HEAD_FLAG::EXPIRED_FULL) != 0)
             bResult &= Object_Close_Full (pObject);
@@ -663,7 +659,7 @@ bool MEM::Object_Delete_Full (SOURCE* pObject)
       {
          bResult = true;
 
-         m_pImpl->aObjectBank[pObject->pObjectHead ()->wClass_Object]->Child_Enum (pIOBMem, this);
+         m_pImpl->aObjectBank[pObject->pObjectHead ()->Self.Class ()]->Child_Enum (pIOBMem, this);
 
          bResult &= Object_Close_Full (pObject);
       }

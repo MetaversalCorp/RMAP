@@ -106,7 +106,7 @@ SOURCE* OBJECTBANK_IND::Next (SOURCE* pParent, uint64_t twObjectIx)
       auto it = std::find_if (m_pImpl->mpObject.begin (), m_pImpl->mpObject.end (),
          [&](const auto& pair) 
          {
-            return (pair.first > twObjectIx && (pParent == NULL || (pParent->pObjectHead ()->wClass_Object == pair.second->pObjectHead ()->wClass_Parent && pParent->pObjectHead ()->twObjectIx == pair.second->pObjectHead ()->twParentIx)));
+            return (pair.first > twObjectIx && (pParent == NULL || (pParent->pObjectHead ()->Self.qwComposed == pair.second->pObjectHead ()->Parent.qwComposed)));
          });
 
       if (it != m_pImpl->mpObject.end ())
@@ -125,7 +125,7 @@ int OBJECTBANK_IND::Enum (SOURCE* pParent, IOBJECTBANK* pIObjectBank, void* pPar
       auto itObject = it++;
       SOURCE* pObject = itObject->second;
 
-      if (pParent == NULL || (pParent->pObjectHead ()->wClass_Object == pObject->pObjectHead ()->wClass_Parent && pParent->pObjectHead ()->twObjectIx == pObject->pObjectHead ()->twParentIx))
+      if (pParent == NULL || (pParent->pObjectHead ()->Self.qwComposed == pObject->pObjectHead ()->Parent.qwComposed))
       {
          nResult = pIObjectBank->onObjectBankItem (pObject, pParam);
 
@@ -142,15 +142,15 @@ bool OBJECTBANK_IND::Insert (SOURCE* pObject)
 {
    bool bResult = false;
 
-   if (pObject->pObjectHead ()->twParentIx > OBJECTBANK::OBJECTIX_NULL && pObject->pObjectHead ()->twParentIx < OBJECTBANK::OBJECTIX_MAX)
+   if (pObject->pObjectHead ()->Parent.ObjectIx () > OBJECTBANK::OBJECTIX_NULL && pObject->pObjectHead ()->Parent.ObjectIx () < OBJECTBANK::OBJECTIX_MAX)
    {
-      if (pObject->pObjectHead ()->twObjectIx > OBJECTBANK::OBJECTIX_NULL && pObject->pObjectHead ()->twObjectIx < OBJECTBANK::OBJECTIX_MAX)
+      if (pObject->pObjectHead ()->Self.ObjectIx () > OBJECTBANK::OBJECTIX_NULL && pObject->pObjectHead ()->Self.ObjectIx () < OBJECTBANK::OBJECTIX_MAX)
       {
-         if (m_pImpl->mpObject.count (pObject->pObjectHead ()->twObjectIx) == 0)
+         if (m_pImpl->mpObject.count (pObject->pObjectHead ()->Self.ObjectIx ()) == 0)
          {
             bResult = true;
 
-            m_pImpl->mpObject.insert ({ pObject->pObjectHead ()->twObjectIx, pObject });
+            m_pImpl->mpObject.insert ({ pObject->pObjectHead ()->Self.ObjectIx (), pObject });
          }
       }
    }
@@ -160,7 +160,7 @@ bool OBJECTBANK_IND::Insert (SOURCE* pObject)
 
 bool OBJECTBANK_IND::Delete (SOURCE* pObject)
 {
-   return (m_pImpl->mpObject.erase (pObject->pObjectHead ()->twObjectIx) == 1);
+   return (m_pImpl->mpObject.erase (pObject->pObjectHead ()->Self.ObjectIx ()) == 1);
 }
 
 /******************************************************************************************************************************/

@@ -9,6 +9,8 @@
 #ifndef RMAP_CORE_MEM_H
 #define RMAP_CORE_MEM_H
 
+#define OBJECTIX_COMPOSE(wClass, twObjectIx)      ((static_cast<uint64_t> (wClass) << 48)  |  (static_cast<uint64_t> (twObjectIx) & 0x0000FFFFFFFFFFFFull))
+
 namespace RMAP
 {
    namespace CORE
@@ -18,6 +20,14 @@ namespace RMAP
          class MEM;
          class MODEL;
 
+         struct OBJECTIX
+         {
+            uint64_t              qwComposed;
+
+            uint64_t              ObjectIx () const { return qwComposed & 0x0000FFFFFFFFFFFFull; }
+            uint16_t              Class ()    const { return static_cast<uint16_t> (qwComposed >> 48); }
+         };
+
          class OBJECTHEAD
          {
          public:
@@ -26,10 +36,8 @@ namespace RMAP
             virtual ~OBJECTHEAD ();
 
          public:
-            uint64_t                      twParentIx;
-            uint64_t                      twObjectIx;
-            uint16_t                      wClass_Parent;
-            uint16_t                      wClass_Object;
+            OBJECTIX                      Parent;
+            OBJECTIX                      Self;
             uint16_t                      wFlags;
          };
 

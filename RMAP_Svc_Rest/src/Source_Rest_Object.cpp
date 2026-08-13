@@ -115,8 +115,8 @@ void REST_OBJECT::twEventIz (uint64_t twEventIz)
 }
 
 uint64_t REST_OBJECT::twEventIz ()  { OBJECTHEAD* pOH = dynamic_cast<OBJECTHEAD*> (pObjectHead ()); return pOH->twEventIz; }
-uint64_t REST_OBJECT::twObjectIx () { return pObjectHead ()->twObjectIx; }
-uint64_t REST_OBJECT::twParentIx () { return pObjectHead ()->twParentIx; }
+uint64_t REST_OBJECT::twObjectIx () { return pObjectHead ()->Self.ObjectIx (); }
+uint64_t REST_OBJECT::twParentIx () { return pObjectHead ()->Parent.ObjectIx (); }
 //std::vector<uint8_t>& REST_OBJECT::GetData () { return m_pImpl->ByteStream.GetData (); }
 
 void REST_OBJECT::Map_Read (RMAP::CORE::MEM::MODEL* pModel)

@@ -373,12 +373,10 @@ uint32_t CLIENT::Object_Recover (ordered_json& jData)
 {
    uint32_t dwResult = 0;
 
-   m_pImpl->pObjectHead->twParentIx    = jData["pObjectHead"]["twParentIx"];
-   m_pImpl->pObjectHead->twObjectIx    = jData["pObjectHead"]["twObjectIx"];
-   m_pImpl->pObjectHead->wClass_Parent = jData["pObjectHead"]["wClass_Parent"];
-   m_pImpl->pObjectHead->wClass_Object = jData["pObjectHead"]["wClass_Object"];
-   m_pImpl->pObjectHead->wFlags        = jData["pObjectHead"]["wFlags"];
-   m_pImpl->pObjectHead->twEventIz     = jData["pObjectHead"]["twEventIz"];
+   m_pImpl->pObjectHead->Parent.qwComposed = OBJECTIX_COMPOSE (jData["pObjectHead"]["wClass_Parent"], jData["pObjectHead"]["twParentIx"]);
+   m_pImpl->pObjectHead->Self  .qwComposed = OBJECTIX_COMPOSE (jData["pObjectHead"]["wClass_Object"], jData["pObjectHead"]["twObjectIx"]);
+   m_pImpl->pObjectHead->wFlags            = jData["pObjectHead"]["wFlags"];
+   m_pImpl->pObjectHead->twEventIz         = jData["pObjectHead"]["twEventIz"];
 
    m_pImpl->pClient->m_pMem->Object_Update (m_pImpl->pObjectHead, this, &jData);
 

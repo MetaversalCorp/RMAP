@@ -72,8 +72,8 @@ void SB_OBJECT::twEventIz (uint64_t twEventIz)
 }
 
 uint64_t SB_OBJECT::twEventIz ()  { OBJECTHEAD* pOH = dynamic_cast<OBJECTHEAD*> (pObjectHead ()); return pOH->twEventIz; }
-uint64_t SB_OBJECT::twObjectIx () { return pObjectHead ()->twObjectIx; }
-uint64_t SB_OBJECT::twParentIx () { return pObjectHead ()->twParentIx; }
+uint64_t SB_OBJECT::twObjectIx () { return pObjectHead ()->Self.ObjectIx ();   }
+uint64_t SB_OBJECT::twParentIx () { return pObjectHead ()->Parent.ObjectIx (); }
 std::vector<uint8_t>& SB_OBJECT::GetData () { return m_pImpl->ByteStream.GetData (); }
 
 void SB_OBJECT::Map_Read (RMAP::CORE::MEM::MODEL* pModel)
@@ -200,7 +200,7 @@ bool SB_OBJECT::Attach ()
 
    if (bIndependent () != false)
    {
-      pClientSB->Object_Subscribe (wClass (), pObjectHead ()->twObjectIx);
+      pClientSB->Object_Subscribe (wClass (), pObjectHead ()->Self.ObjectIx ());
 
       bResult = true;
    }
@@ -215,7 +215,7 @@ bool SB_OBJECT::Detach ()
 
    if (bIndependent () != false)
    {
-      pClientSB->Object_Unsubscribe (wClass (), pObjectHead ()->twObjectIx);
+      pClientSB->Object_Unsubscribe (wClass (), pObjectHead ()->Self.ObjectIx ());
 
       bResult = true;
    }

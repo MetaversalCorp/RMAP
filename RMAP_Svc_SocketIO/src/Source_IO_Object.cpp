@@ -124,8 +124,8 @@ ordered_json& IO_OBJECT::GetData ()
 }
 
 uint64_t IO_OBJECT::twEventIz ()  { OBJECTHEAD* pOH = dynamic_cast<OBJECTHEAD*> (pObjectHead ()); return pOH->twEventIz; }
-uint64_t IO_OBJECT::twObjectIx () { return pObjectHead ()->twObjectIx; }
-uint64_t IO_OBJECT::twParentIx () { return pObjectHead ()->twParentIx; }
+uint64_t IO_OBJECT::twObjectIx () { return pObjectHead ()->Self.ObjectIx ();   }
+uint64_t IO_OBJECT::twParentIx () { return pObjectHead ()->Parent.ObjectIx (); }
 
 void IO_OBJECT::Map_Read (RMAP::CORE::MEM::MODEL* pModel)
 {
@@ -248,7 +248,7 @@ bool IO_OBJECT::Attach ()
 
    if (bIndependent ())
    {
-      pClientIO->Object_Subscribe (wClass (), pObjectHead ()->twObjectIx);
+      pClientIO->Object_Subscribe (wClass (), pObjectHead ()->Self.ObjectIx ());
 
       bResult = true;
    }
@@ -263,7 +263,7 @@ bool IO_OBJECT::Detach ()
 
    if (bIndependent ())
    {
-      pClientIO->Object_Unsubscribe (wClass (), pObjectHead ()->twObjectIx);
+      pClientIO->Object_Unsubscribe (wClass (), pObjectHead ()->Self.ObjectIx ());
 
       bResult = true;
    }

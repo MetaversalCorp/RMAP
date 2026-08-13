@@ -110,13 +110,12 @@ MODEL* OBJECTBANK::Model_Open (std::string sArgs, uint16_t wClass_Parent, uint64
 
                if (wClass_Parent == 0)
                {
-                  twParentIx = pObject->pObjectHead ()->twParentIx ? pObject->pObjectHead ()->twParentIx : OBJECTIX_MAX - 1; // it's illegal to put an object in the object bank with a parent index of 0
+                  twParentIx = pObject->pObjectHead ()->Parent.ObjectIx () ? pObject->pObjectHead ()->Parent.ObjectIx () : OBJECTIX_MAX - 1; // it's illegal to put an object in the object bank with a parent index of 0
                }
 
-               pObject->pObjectHead ()->wClass_Parent = wClass_Parent;
-               pObject->pObjectHead ()->twParentIx    = twParentIx;
-               pObject->pObjectHead ()->wClass_Object = m_pImpl->pSource_Factory->pReference->wClass;
-               // pObject->pObjectHead ()->twObjectIx            = 0; // this value was already initialized during model creation
+               pObject->pObjectHead ()->Parent.qwComposed = OBJECTIX_COMPOSE (wClass_Parent, twParentIx);
+               pObject->pObjectHead ()->Self  .qwComposed = OBJECTIX_COMPOSE (m_pImpl->pSource_Factory->pReference->wClass, pObject->pObjectHead ()->Self.ObjectIx ());
+
                pObject->pObjectHead ()->wFlags = 0;
 
                if (Insert (pObject) == false)
