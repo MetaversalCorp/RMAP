@@ -31,7 +31,7 @@ public:
 **                                                     CLASS (IREFRENCE)                                                      **
 *******************************************************************************************************************************/
 
-CLIENT::IREFERENCE::IREFERENCE (std::string sID, uint64_t twClientIx) :
+CLIENT::IREFERENCE::IREFERENCE (const std::string& sID, uint64_t twClientIx) :
    RMAP::CORE::IREFERENCE<CLIENT*, SERVICE*> (sID)
 {
    m_pImpl = new CLIENT::IREFERENCE::Impl (twClientIx);
@@ -138,7 +138,7 @@ SOURCE* CLIENT::Source (int wClass)
    return (search != m_pImpl->apSource.end ()) ? search->second : NULL;
 }
 
-MODEL* CLIENT::Model_Open_Aux (std::string sID_Model, std::string sArgs)
+MODEL* CLIENT::Model_Open_Aux (const std::string& sID_Model, const std::string& sArgs)
 {
    MODEL* pModel = NULL;
    SOURCECLASS* pSourceClass;
@@ -243,7 +243,7 @@ MODEL_SESSION* CLIENT::Session_Close (RMAP::CORE::MODEL_SESSION* pSession)
    return dynamic_cast <RMAP::CORE::MODEL_SESSION*> (pModel);
 }
 
-MEM::MODEL* CLIENT::Model_Open (std::string sID_Model, std::string sArgs)
+MEM::MODEL* CLIENT::Model_Open (const std::string& sID_Model, const std::string& sArgs)
 {
    MEM::MODEL* pModel;
 

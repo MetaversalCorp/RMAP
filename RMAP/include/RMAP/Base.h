@@ -129,7 +129,7 @@ namespace RMAP
          class IREFERENCE : public RMAP::CORE::IREFERENCE<CLIENT*, SERVICE*>
          {
          public:
-            IREFERENCE (std::string sID, uint64_t twClientIx);
+            IREFERENCE (const std::string& sID, uint64_t twClientIx);
             virtual ~IREFERENCE ();
 
             std::string Key () override;
@@ -195,7 +195,7 @@ namespace RMAP
 
          MODEL_SESSION* Session_Open (bool bAutoConnect);
          MODEL_SESSION* Session_Close (MODEL_SESSION* pSession);
-         MEM::MODEL*    Model_Open (std::string sID_Model, std::string sArgs);
+         MEM::MODEL*    Model_Open (const std::string& sID_Model, const std::string& sArgs);
          MEM::MODEL*    Model_Close (MEM::MODEL* pModel);
 
          virtual IACTION* Request (const ACTION* pAction) = 0;
@@ -213,7 +213,7 @@ namespace RMAP
          static intptr_t SetVDParam (bool bVoluntary, bool bConnected, bool bDisconnected);
 
       protected:
-         MODEL* Model_Open_Aux (std::string sID_Model, std::string sArgs);
+         MODEL* Model_Open_Aux (const std::string& sID_Model, const std::string& sArgs);
          MODEL* Model_Close_Aux (MODEL* pModel);
          SOURCE* Source (int wClass);
 
