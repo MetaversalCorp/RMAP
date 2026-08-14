@@ -74,7 +74,7 @@ void SOURCE::initialize (MODEL* pModel, uint64_t twObjectIx, uint64_t twChildIx)
    RMAP::CORE::SOURCE::initialize (pModel);
 
    m_pImpl->pObjectHead->Parent.qwComposed = OBJECTIX_COMPOSE (m_pImpl->pObjectHead->Parent.Class (), m_pImpl->bIndependent ? 0 : twObjectIx);
-   m_pImpl->pObjectHead->Self  .qwComposed = OBJECTIX_COMPOSE (m_pImpl->pObjectHead->Self  .Class (), m_pImpl->bIndependent ? twObjectIx : twChildIx);
+   m_pImpl->pObjectHead->Self  .qwComposed = OBJECTIX_COMPOSE (wClass (), m_pImpl->bIndependent ? twObjectIx : twChildIx);
 }
 
 bool        SOURCE::bIndependent () { return m_pImpl->bIndependent; }
