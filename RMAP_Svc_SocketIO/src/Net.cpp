@@ -337,6 +337,9 @@ public:
 
    void onClose (client::close_reason const& reason)
    {
+      if (m_pIControl)
+         m_pIControl->SocketDisconnect_Complete (true);
+
       m_pINet->onDisconnected ();
    }
 
