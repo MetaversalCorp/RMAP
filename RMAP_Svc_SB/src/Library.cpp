@@ -72,11 +72,17 @@ void LibrarySVC_SB::Unstall (RMAP::CORE::PLUGIN* pPlugin)
       for (n = 0; n < m_apFactory_Service.size (); n++)
          delete m_apFactory_Service[n];
 
+      m_apFactory_Service.clear ();
+
       for (n = 0; n < m_apFactory_Model.size (); n++)
          delete m_apFactory_Model[n];
 
+      m_apFactory_Model.clear ();
+
       for (n = 0; n < m_apFactory_Source.size (); n++)
          delete m_apFactory_Source[n];
+
+      m_apFactory_Source.clear ();
 
       pCore->Release (m_pRequire);
 

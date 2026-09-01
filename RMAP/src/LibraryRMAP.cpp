@@ -41,6 +41,8 @@ void LibraryRMAP::Unstall (CORE::PLUGIN* pPlugin)
 
    for (n = 0; n < m_apFactory_Model.size (); n++)
       delete m_apFactory_Model[n];
+
+   m_apFactory_Model.clear ();
 }
 
 /*******************************************************************************************************************************
