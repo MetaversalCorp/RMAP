@@ -78,6 +78,7 @@ PACKAGE::IREFERENCE::IREFERENCE (const std::string& sID, const std::string& sNam
 
 PACKAGE::IREFERENCE::~IREFERENCE ()
 {
+   delete m_pImpl;
 }
 
 std::string PACKAGE::IREFERENCE::Key ()
@@ -142,6 +143,7 @@ PACKAGE::FACTORY::FACTORY (const std::string& sID_Service, const std::string& sI
 
 PACKAGE::FACTORY::~FACTORY ()
 {
+   delete m_pImpl;
 }
 
 std::string const& PACKAGE::FACTORY::sID () const&
