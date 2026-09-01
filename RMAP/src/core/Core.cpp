@@ -382,7 +382,7 @@ PLUGIN* APP::Plugin_Close (PLUGIN* pPlugin)
 
    if (m_pImpl->sopPlugin.Close (sID) != NULL)
    {
-      LibraryUnstall (sID);
+      // Unload
    }
 
    pPlugin = NULL;
