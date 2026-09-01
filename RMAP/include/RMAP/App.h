@@ -283,7 +283,7 @@ namespace RMAP
 
          static APP* GetInstance ();
 
-         void     LoggerStart (ILOGGER* pLogger);
+         void     LoggerStart (ILOGGER* pLogger, bool bRaw = false);
          void     LoggerStop ();
          LOGGER*  LoggerGet ();
          void     LoggerWrite (LOGGER::eLOGLEVEL Level, std::string sModule, std::string sMessage);

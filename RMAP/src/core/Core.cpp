@@ -56,11 +56,11 @@ public:
       delete cpLnG;
    }
 
-   void LoggerStart (ILOGGER* pLogger)
+   void LoggerStart (ILOGGER* pLogger, bool bRaw)
    {
       if (m_pLogger == NULL)
       {
-         m_pLogger = new LOGGER (pLogger);
+         m_pLogger = new LOGGER (pLogger, bRaw);
       }
    }
 
@@ -269,9 +269,9 @@ APP::~APP ()
    delete m_pImpl;
 }
 
-void APP::LoggerStart (ILOGGER* pLogger)
+void APP::LoggerStart (ILOGGER* pLogger, bool bRaw)
 {
-   m_pImpl->LoggerStart (pLogger);
+   m_pImpl->LoggerStart (pLogger, bRaw);
 }
 
 void APP::LoggerStop ()
