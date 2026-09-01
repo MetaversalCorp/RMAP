@@ -37,8 +37,9 @@ LOGGER_MESSAGE;
 class LOGGER::Impl
 {
 public:
-   Impl (ILOGGER* pLogger) :
-      m_pLogger (pLogger)
+   Impl (ILOGGER* pLogger, bool bRaw) :
+      m_pLogger (pLogger),
+      m_bRaw (bRaw)
    {
       m_pThread = new std::thread (&LOGGER::Impl::ThreadLoop, this);
    }
@@ -89,31 +90,37 @@ public:
 
             if (lm.tNow != 0)
             {
+               if (m_bRaw)
+               {
+                  m_pLogger->onMessage (lm.tNow, lm.Level, lm.sModule, lm.sMessage);
+               }
+               else
+               {
 #if defined(_MSC_VER)  
-               localtime_s (&tmNow, &lm.tNow); // MSVC path  
+                  localtime_s (&tmNow, &lm.tNow); // MSVC path  
 #elif defined(__GNUC__)  
-               localtime_r (&lm.tNow, &tmNow); // GCC/Clang path  
+                  localtime_r (&lm.tNow, &tmNow); // GCC/Clang path  
 #endif  
+                  AppendFormattedNum (sLine, 1900 + tmNow.tm_year); sLine += "-";
+                  AppendFormattedNum (sLine, tmNow.tm_mon + 1);     sLine += "-";
+                  AppendFormattedNum (sLine, tmNow.tm_mday);
+                  sLine += "\t";
 
-               AppendFormattedNum (sLine, 1900 + tmNow.tm_year); sLine += "-";
-               AppendFormattedNum (sLine, tmNow.tm_mon + 1);     sLine += "-";
-               AppendFormattedNum (sLine, tmNow.tm_mday);
-               sLine += "\t";
+                  AppendFormattedNum (sLine, tmNow.tm_hour);        sLine += ":";
+                  AppendFormattedNum (sLine, tmNow.tm_min);         sLine += ":";
+                  AppendFormattedNum (sLine, tmNow.tm_sec);         sLine += ".";
+                  AppendFormattedNum (sLine, lm.nMilliseconds, 100);
+                  sLine += "\t";
 
-               AppendFormattedNum (sLine, tmNow.tm_hour);        sLine += ":";
-               AppendFormattedNum (sLine, tmNow.tm_min);         sLine += ":";
-               AppendFormattedNum (sLine, tmNow.tm_sec);         sLine += ".";
-               AppendFormattedNum (sLine, lm.nMilliseconds, 100);
-               sLine += "\t";
+                  sLine += apcszLevels[lm.Level];
+                  sLine += "\t";
 
-               sLine += apcszLevels[lm.Level];
-               sLine += "\t";
+                  sLine += lm.sModule + "\t";
 
-               sLine += lm.sModule + "\t";
+                  sLine += lm.sMessage + "\n";
 
-               sLine += lm.sMessage + "\n";
-
-               m_pLogger->onMessage (sLine);
+                  m_pLogger->onMessage (sLine);
+               }
             }
          }
          while (lm.tNow != 0);
@@ -201,6 +208,7 @@ private:
    bool                       m_bShutdown;
 
    ILOGGER*                   m_pLogger;
+   bool                       m_bRaw;
 
    LOGGER::eLOGLEVEL          m_Level;
    std::recursive_mutex       m_CS;
@@ -211,11 +219,11 @@ private:
 **                                                     CLASS (LOGGER)                                                         **
 *******************************************************************************************************************************/
 
-LOGGER::LOGGER (ILOGGER* pLogger)
+LOGGER::LOGGER (ILOGGER* pLogger, bool bRaw)
 {
    std::string sModule  = "RMAP";
    std::string sMessage = "LOGGER Started";
-   m_pImpl = new Impl (pLogger);
+   m_pImpl = new Impl (pLogger, bRaw);
 
    m_pImpl->Log (kLOGLEVEL_Info, sModule, sMessage);
 }

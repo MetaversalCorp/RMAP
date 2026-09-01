@@ -371,7 +371,6 @@ PLUGIN* APP::Plugin_Open (const std::string& sID)
 
 PLUGIN* APP::Plugin_Close (PLUGIN* pPlugin)
 {
-   std::map<std::string, LIBRARY*>::iterator it;
    std::string sID = pPlugin->sID ();
 
    if ((pPlugin = m_pImpl->sopPlugin.Get (sID)) != NULL) // this provides mutual exclusion
@@ -383,7 +382,7 @@ PLUGIN* APP::Plugin_Close (PLUGIN* pPlugin)
 
    if (m_pImpl->sopPlugin.Close (sID) != NULL)
    {
-      it = m_pImpl->mpLibrary.find (sID);
+      LibraryUnstall (sID);
    }
 
    pPlugin = NULL;

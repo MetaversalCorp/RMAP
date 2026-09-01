@@ -217,12 +217,7 @@ namespace RMAP
          virtual void onNotify (intptr_t pParam) = 0;
       };
 
-      class ILOGGER
-      {
-      public:
-         virtual void onMessage (std::string& sLine) = 0;
-      };
-
+      class ILOGGER;
       class LOGGER
       {
       public:
@@ -235,7 +230,7 @@ namespace RMAP
          };
 
       public:
-         LOGGER (ILOGGER* pLogger);
+         LOGGER (ILOGGER* pLogger, bool bRaw = false);
          ~LOGGER ();
 
          void SetLogLevel (eLOGLEVEL Level);
@@ -246,6 +241,13 @@ namespace RMAP
       private:
          class Impl;
          Impl* m_pImpl;
+      };
+
+      class ILOGGER
+      {
+      public:
+         virtual void onMessage (uint64_t tNow, LOGGER::eLOGLEVEL eLevel, std::string& sModule, std::string& sLine) = 0;
+         virtual void onMessage (std::string& sLine) = 0;
       };
 
       class LNG;

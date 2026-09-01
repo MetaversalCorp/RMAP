@@ -98,6 +98,20 @@ void PLUGIN::Unstall (APP* pCore)
    {
       pCore->LoggerWrite (LOGGER::kLOGLEVEL_Info, LibraryRMAP::sModuleName, "Unstalling plugin: " + m_pLibrary->sID ());
 
+      // REMOVE OPENED PACKAGES WHILE FACTORIES ARE ACCESSIBLE
+      while (m_pImpl->sopPackage.Length () > 0)
+      {
+         PACKAGE* pPackage = m_pImpl->sopPackage.Index (0);
+
+         if (pPackage)
+         {
+            std::string sKey = pPackage->sKey ();
+            pPackage->Unstall ();
+            m_pImpl->sopPackage.Release ();
+            m_pImpl->sopPackage.Close (sKey);
+         }
+      }
+
       m_pLibrary->Unstall (this);
 
       m_bInstalled = false;
