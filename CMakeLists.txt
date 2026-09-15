@@ -469,7 +469,17 @@ if(NOT RMAP_USE_SYSTEM_SIOCLIENT)
    # the moment the socket.io run loop starts. Overwrite sioclient's bundled asio +
    # websocketpp headers with RMAP's pinned copies so the whole link resolves to a
    # single asio/websocketpp (rapidjson is used nowhere else, so it stays bundled).
-   set(_sioclient_patch_cmd)
+   # Cancel socket.io's 3s disconnect-ACK timer when the WebSocket drops, and do
+   # not bind on_close as that timer's handler (cancel/reset UAF on the io thread).
+   set(_sio_close_timeout_patch
+      COMMAND ${CMAKE_COMMAND}
+         -DSIO_SOCKET_CPP=<SOURCE_DIR>/src/sio_socket.cpp
+         -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/PatchSioClientCloseTimeout.cmake")
+
+   set(_sioclient_patch_cmd
+      PATCH_COMMAND ${CMAKE_COMMAND}
+         -DSIO_SOCKET_CPP=<SOURCE_DIR>/src/sio_socket.cpp
+         -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/PatchSioClientCloseTimeout.cmake")
    if(DEFINED RMAP_ASIO_DIR AND DEFINED RMAP_WEBSOCKETPP_DIR)
       set(_sioclient_patch_cmd
          PATCH_COMMAND
@@ -478,7 +488,8 @@ if(NOT RMAP_USE_SYSTEM_SIOCLIENT)
                ${RMAP_ASIO_DIR}/asio/include <SOURCE_DIR>/lib/asio/asio/include
             COMMAND ${CMAKE_COMMAND} -E rm -rf <SOURCE_DIR>/lib/websocketpp
             COMMAND ${CMAKE_COMMAND} -E copy_directory
-               ${RMAP_WEBSOCKETPP_DIR}/websocketpp <SOURCE_DIR>/lib/websocketpp/websocketpp)
+               ${RMAP_WEBSOCKETPP_DIR}/websocketpp <SOURCE_DIR>/lib/websocketpp/websocketpp
+            ${_sio_close_timeout_patch})
    endif()
 
    # MSVC flags for socket.io's own build. Because CMAKE_CXX_FLAGS here REPLACES
