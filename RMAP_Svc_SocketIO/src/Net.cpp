@@ -300,9 +300,11 @@ public:
    {
       delete m_pThrControl;
 
-      m_pClient->sync_close ();
-      m_pClient->clear_con_listeners ();
-
+      // Do not call sync_close() here. That path uses socket::close(), which
+      // arms a 3s disconnect-ACK timer that keeps the network thread (and
+      // therefore the join) alive after the WebSocket is already gone.
+      // sio::client's destructor invokes socket::on_close() first (cancels
+      // that timer, no ACK wait) and then sync_close() + join.
       delete m_pClient;
    }
 
